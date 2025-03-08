@@ -3,7 +3,7 @@ title: "Assignment 1"
 author: 
   - Simon Clarke
   - David Ewing
-  - Xai Yu
+  - Xia Yu
 date: "`r Sys.Date()`"
 output: pdf_document
 ---
