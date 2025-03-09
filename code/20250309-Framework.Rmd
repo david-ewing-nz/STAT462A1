@@ -63,11 +63,13 @@ Using the linear regression model, predict the braking distance for a car going 
 
 ## Data and Initial Analysis
 
-```{r}
+```{r aussie-map}
 # Load dataset and visualize
-```
-
+knitr::include_graphics("../images/possum_age_plot.png")
 ## Data Preparation
+
+
+```
 
 ```{r}
 # Preprocess dataset
