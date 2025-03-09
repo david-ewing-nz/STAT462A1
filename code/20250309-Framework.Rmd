@@ -9,10 +9,12 @@ output: pdf_document
 ---
 
 ```{r setup, include=FALSE}
+options(repos = c(CRAN = "https://cran.stat.auckland.ac.nz/"))
 library(ggplot2)
 library(dplyr)
 library(class)
 library(tidyr)
+update.packages(ask = FALSE) #auto-update
 ```
 
 # Braking Distance
@@ -53,18 +55,29 @@ Using the linear regression model, predict the braking distance for a car going 
 # Load and preprocess dataset
 ```
 
+
 ## Linear Regression
 
 ```{r}
-# Fit linear model and summarize
+# Fit linear model and summarise
 ```
 
 # Predicting Possum Age
 
+## Data Preparation
+
+```{r}
+# Load and preprocess dataset
+ zip_path <- "../data/datasets.zip"
+ file.exists(zip_path)
+ possums <- read.csv(unz(zip_path, "possums.csv"))
+ head(possums)
+```
+
 ## Data and Initial Analysis
 
 ```{r aussie-map}
-# Load dataset and visualize
+# Load dataset and visualise
 knitr::include_graphics("../images/possum_age_plot.png")
 ## Data Preparation
 
