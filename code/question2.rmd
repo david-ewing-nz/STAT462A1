@@ -3,11 +3,10 @@
 ### Data Load and Variable Rename
 
 ```{r}
-# Load the dataset 'income.csv' into R as a data frame called 'income_data'
+# load the dataset 'income.csv' into r as a data frame called 'income_dataset'
 zip_path <- "../data/datasets.zip"
 file.exists(zip_path)
 income_dataset <- read.csv(unz(zip_path, "income.csv"))
-head(income_dataset)
 # data column name exploration 
 str(income_dataset)
 
@@ -16,18 +15,14 @@ income <- income_dataset$Total.Household.Income
 children <- income_dataset$Members.with.age.5...17.years.old
 ```
 
-### Initial Exploration Of Target Variable 'income' And 'children'
+### Data Validation And Cleaning
 
 ```{r}
-# Print the first few rows of the data
-cat("First few rows of Household Income:\n", head(income), "\n\n")
-cat("First few rows of Number of Children:\n", head(children), "\n\n")
-
-# Check for missing values
+# check for missing values
 cat("Number of missing values in Household Income:", sum(is.na(income)), "\n")
 cat("Number of missing values in Number of Children:", sum(is.na(children)), "\n")
 
-# Print summaries in a concise way without storing the summaries separately
+# summaries of variables
 cat("\nSummary of Household Income:\n", 
     paste(names(summary(income)), summary(income), sep = " = ", collapse = "\n"), "\n\n")
 
@@ -35,7 +30,7 @@ cat("Summary of Number of Children:\n",
     paste(names(summary(children)), summary(children), sep = " = ", collapse = "\n"), "\n")
 ```
 
-### Scatter plot of income vs. children
+### Scatter Plot Of Target Data
 
 ```{r}
 # Scatter plot of income vs. children
@@ -47,23 +42,23 @@ plot(children, income/10000, xlab = "Number of Children", ylab = "Household Inco
 ### Training Set And Testing Set Preparation
 
 ```{r}
-# Set a seed for reproducibility
-set.seed(888)  # seed number could be modified, here I use seed for reduce RAM pressure \n in compution when smaple size is over 40000.
-# Combine income and children into a data frame
+# set a seed for reproducibility and reduce RAM pressure.
+set.seed(888)  
+# combine income and children into a data frame
 data <- data.frame(income = income, children = children)
-# Split the data into training (80%) and test sets (20%)
-train_data <- data[sample(1:nrow(data), size = 0.8 * nrow(data)), ]
+# split the data into training (80%) and test sets (20%)
+train_data <- data[sample(1:nrow(data), size = 0.8 * nrow(data)), ] #	sample() is a function for random sampling. Its first argument is the object to be sampled, and its second argument, size, specifies how many elements to be sampled.
 test_data <- data[-sample(1:nrow(data), size = 0.8 * nrow(data)), ]
 
 ```
 
-### Model Trainning
+### Model Training
 
 ```{r}
-# Fit a linear regression model
+# fit a linear regression model
 model <- lm(income ~ children, data = train_data)
 
-# Print the summary of the model
+# print the summary of the model
 summary(model)
 
 ```
@@ -86,16 +81,26 @@ summary(model)
 
     income of a household with $𝑛$ children
 
-    Children Number ( \$N\$ ) \| Income
-
-    0\|
-
 ```{r}
+# library(xtable)
 n <- array(0:8)
 b_0 <- 262735
 b_1 <- -11256
-income_n <- b_0+b_1*n
-cat(paste0("The predicted mean income of a household with 0-8 children = ",mean(income_n)),"\n")
+alpha <- 0.1
+# tao <- 
+predict_income_n <- b_0+b_1*n
+true_mean_income_n <- tapply(df$income, df$n, mean) # 使用 tapply() 按 n 分组并计算每组的均值
+
+df <- data.frame(n = n, predicted_income  = predict_income_n,
+                 true_mean_income_n = true_mean_income_n
+                 )
+
+# 创建格式化的表格
+ft <- flextable(df)
+# 打印表格
+ft
+
+# cat(paste0("The predicted mean income of a household with 0-8 children = ",mean(income_n)),"\n")
 ```
 
 When the sample number $\text{n}=8$, which is very small, we could .... (to be continue)
