@@ -21,6 +21,7 @@
 # output file from knit
 code/*.pdf
 code/*.html
+data/*.csv
 
 # RStudio files
 .Rproj.user/
