@@ -1,9 +1,9 @@
 ---
 title: "STAT462 Assignment 1"
-author: 
-  - Simon Clarke
-  - David Ewing (82171165)
-  - Xia Yu
+author:  
+ - Simon Clark (XXXXXXXX) 
+ -  David Ewing (82171165)  
+ -  Xia Yu (YYYYYYYY) 
 date: "`r Sys.Date()`"
 output: pdf_document
 ---

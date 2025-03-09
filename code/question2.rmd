@@ -1,0 +1,15 @@
+
+
+
+## Data Preparation
+
+```{r}
+# Load and preprocess dataset
+```
+
+
+## Linear Regression
+
+```{r}
+# Fit linear model and summarise
+```

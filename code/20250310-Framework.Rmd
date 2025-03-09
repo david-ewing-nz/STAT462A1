@@ -1,0 +1,60 @@
+---
+title: "STAT462 Assignment 1"
+author:  
+ -  Simon Clark (XXXXXXXX) 
+ -  David Ewing (82171165)  
+ -  Xia Yu (YYYYYYYY) 
+date: "`r Sys.Date()`"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+# DEE: This chunk was set up with the aid of ChatGPT 
+
+options(repos = c(CRAN = "https://cran.stat.auckland.ac.nz/"))
+
+# required packages
+required_packages <- c("ggplot2", "dplyr", "class", "tidyr")
+
+# install only missing packages (no forced updates)
+for (pkg in required_packages) {
+  if (!requireNamespace(pkg, quietly = TRUE)) {
+    install.packages(pkg)
+  }
+}
+
+# add your libraries here!!!
+library(ggplot2)
+library(dplyr)
+library(class)
+library(tidyr)
+```
+```{r just-checkin, INCLUDE=FALSE}
+
+dir.exists("../code/")
+file.exists("../code/question1.Rmd")
+file.exists("../code/question2.Rmd")
+file.exists("../code/question3.Rmd")
+```
+
+# Braking Distance
+
+
+```{r, child="../code/question1.Rmd"}
+```
+
+
+
+# Filipino Household Income
+
+
+
+```{r, child="../code/question2.Rmd"}
+```
+
+
+# Predicting Possum Age
+
+
+```{r, child="../code/question3.Rmd"}
+```
