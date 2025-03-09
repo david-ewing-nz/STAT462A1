@@ -121,7 +121,8 @@ plot(children, income/10000, xlab = "Number of Children", ylab = "Household Inco
 
 ```{r}
 # Set a seed for reproducibility
-set.seed(888)  # 你可以修改123为任意数值
+set.seed(888)  # seed number could be modified, here I use seed for reduce RAM pressure \
+# \in compution when smaple size is over 40000.
 # Combine income and children into a data frame
 data <- data.frame(income = income, children = children)
 # Split the data into training (80%) and test sets (20%)
@@ -155,7 +156,7 @@ summary(model)
 
     $\text{income} = 262735 −11256 \cdot \text{children}$
 
-2.  What is the predicted mean income of a household with $𝑛$ children, for $\text{n} ∈ \{0,1,…,8\}$? What are the associated 90% prediction intervals? Summarise all of this in a table.
+2.  What is the predicted mean income of a household with $𝑛$ children, for $\text{n} ∈ \{0,1,…,8\}$? What are the associated 90% prediction intervals? Summarize all of this in a table.
 
 ```{r}
 n <- array(0:8)
