@@ -9,31 +9,42 @@ output: pdf_document
 ---
 
 ```{r setup, include=FALSE}
-# DEE: This chunk was set up with the aid of ChatGPT 
+# DEE: This chunk was set up with the aid of ChatGPT
+#      The intent is to load updates quietly thus not
+#      spending undue time with the logistics of getting 
+#      setup. 
 
 options(repos = c(CRAN = "https://cran.stat.auckland.ac.nz/"))
 
-# required packages
-required_packages <- c("ggplot2", "dplyr", "class", "tidyr","flextable","skimr")
+# Required packages
+required_packages <- c("conflicted", "ggplot2", "dplyr", "class", "tidyverse",
+                       "flextable", "skimr")
 
-# install only missing packages (no forced updates)
+# Install and load missing packages in a single step
 for (pkg in required_packages) {
   if (!requireNamespace(pkg, quietly = TRUE)) {
     install.packages(pkg)
   }
+  library(pkg, character.only = TRUE)  # Load package after installation check
 }
 
-# add your libraries here!!!
-library(ggplot2)
-library(dplyr)
-library(class)
-library(tidyr)
-library(flextable)
-library(skimr)
+conflict_prefer("filter", "dplyr"); conflict_prefer("select", "dplyr")
+
+# THIS IS THE MANUAL WAY. I am happy to help you get your
+# library into the loop above if you have problems doing 
+# this on your own. 
+# library(ggplot2)
+# library(dplyr)
+# library(class)
+# library(tidyr)
+# library(flextable)
+# library(skimr)
 ```
 
 ```{r just-checkin, include=FALSE}
   
+  # is the folder and file structure 
+  # constructed correctly? 
   dir.exists("../code/")
   file.exists("../code/question1.Rmd")
   file.exists("../code/question2.Rmd")
@@ -44,7 +55,7 @@ library(skimr)
 
 ```{r load-common-data, eval=FALSE, include=FALSE }
 # Load and preprocess dataset
-# Eval=FALSE until agreed by all parties. 
+# eval=FALSE until agreed by all parties. 
   zip_path <- "../data/datasets.zip"
   file.exists(zip_path)
   braking <- read.csv(unz(zip_path, "braking.csv"))

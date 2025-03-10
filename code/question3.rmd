@@ -15,6 +15,18 @@
 ```
 
 ## Data and Initial Analysis
+```{r analyse-possums, include=FALSE}
+
+possums_0 <- possums |>
+  drop_na(age) # drop missing values identified in skim() 
+
+remove_outliers <- function(data, column) {        # Function to remove outliers 
+  outliers <- boxplot.stats(data[[column]])$out    # identify outliers
+  data |> filter(!(data[[column]] %in% outliers))  # filter   outliers
+  }
+```
+
+
 
 ```{r possum-map, echo=FALSE, out.width="70%", fig.align='center'}
 # Load data-set and visualise
