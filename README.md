@@ -62,7 +62,7 @@ knitr::knit("code/question1.Rmd")
 For any questions or issues, please contact:
 - **Simon Clark**
 - **David Ewing (82171165)**
-- **Xia Yu**
+- **Xia Yu (62380486)**
 
 ---
 **Version:** 1.0  
