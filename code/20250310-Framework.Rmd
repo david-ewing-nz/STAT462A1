@@ -14,7 +14,7 @@ output: pdf_document
 options(repos = c(CRAN = "https://cran.stat.auckland.ac.nz/"))
 
 # required packages
-required_packages <- c("ggplot2", "dplyr", "class", "tidyr")
+required_packages <- c("ggplot2", "dplyr", "class", "tidyr","flextable","skimr")
 
 # install only missing packages (no forced updates)
 for (pkg in required_packages) {
@@ -28,14 +28,29 @@ library(ggplot2)
 library(dplyr)
 library(class)
 library(tidyr)
+library(flextable)
+library(skimr)
 ```
-```{r just-checkin, INCLUDE=FALSE}
 
-dir.exists("../code/")
-file.exists("../code/question1.Rmd")
-file.exists("../code/question2.Rmd")
-file.exists("../code/question3.Rmd")
+```{r just-checkin, include=FALSE}
+  
+  dir.exists("../code/")
+  file.exists("../code/question1.Rmd")
+  file.exists("../code/question2.Rmd")
+  file.exists("../code/question3.Rmd")
 ```
+
+# Load all Data 
+
+```{r load-common-data, eval=FALSE, include=FALSE }
+# Load and preprocess dataset
+# Eval=FALSE until agreed by all parties. 
+  zip_path <- "../data/datasets.zip"
+  file.exists(zip_path)
+  braking <- read.csv(unz(zip_path, "braking.csv"))
+  income  <- read.csv(unz(zip_path, "income.csv"))
+  possums <- read.csv(unz(zip_path, "possums.csv"))
+``` 
 
 # Braking Distance
 

@@ -4,17 +4,20 @@
 ## Data Preparation
 
 ```{r load-possums, include=FALSE}
-# Load and preprocess dataset
- zip_path <- "../data/datasets.zip"
- file.exists(zip_path)
- possums <- read.csv(unz(zip_path, "possums.csv"))
- head(possums)
+# Load and preprocess data-set
+  zip_path <- "../data/datasets.zip"
+  file.exists(zip_path)
+  possums <- read.csv(unz(zip_path, "possums.csv"))
+  skimp   <- skim(possums) |>
+  select(skim_variable, n_missing)
+  skimp                           
+  head(possums)    
 ```
 
 ## Data and Initial Analysis
 
 ```{r possum-map, echo=FALSE, out.width="70%", fig.align='center'}
-# Load dataset and visualise
+# Load data-set and visualise
 knitr::include_graphics("../images/possum_age_plot.png")
 ## Data Preparation
 
@@ -22,7 +25,7 @@ knitr::include_graphics("../images/possum_age_plot.png")
 ```
 
 ```{r}
-# Preprocess dataset
+# Preprocess data-set
 ```
 
 ## Feature Selection and Model Training
