@@ -1,6 +1,6 @@
 
 
-# Braking Distance
+
 
 In this question, do not use the `lm` function or a module that provides an implementation of k-NN. You are allowed to use elementary statistical objects like mean, variance, etc.
 
