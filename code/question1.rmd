@@ -1,0 +1,31 @@
+
+
+# Braking Distance
+
+In this question, do not use the `lm` function or a module that provides an implementation of k-NN. You are allowed to use elementary statistical objects like mean, variance, etc.
+
+We will be predicting the distance that a car takes to stop when driving at a certain speed. The dataset is from 1930, so it might be slightly outdated. Units are miles per hour (speed) and feet (distance).
+
+## Data Preparation
+
+```{r}
+# Load and preprocess dataset
+```
+
+## Linear Regression (Without lm)
+
+```{r}
+# Compute slope and intercept for simple linear regression
+```
+
+Using the linear regression model, predict the braking distance for a car going at 30 km/h and include an 80% prediction interval.
+
+```{r}
+# Prediction for 30 km/h
+```
+
+## k-NN Model
+
+```{r}
+# Fit and predict using k-NN model
+```

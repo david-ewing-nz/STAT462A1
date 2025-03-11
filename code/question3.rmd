@@ -1,0 +1,44 @@
+
+# ---------------------------
+
+## Data Preparation
+
+```{r load-possums, include=FALSE}
+# Load and preprocess dataset
+ zip_path <- "../data/datasets.zip"
+ file.exists(zip_path)
+ possums <- read.csv(unz(zip_path, "possums.csv"))
+ head(possums)
+```
+
+## Data and Initial Analysis
+
+```{r possum-map, echo=FALSE, out.width="70%", fig.align='center'}
+# Load dataset and visualise
+knitr::include_graphics("../images/possum_age_plot.png")
+## Data Preparation
+
+
+```
+
+```{r}
+# Preprocess dataset
+```
+
+## Feature Selection and Model Training
+
+```{r}
+# Forward feature selection and model training
+```
+
+## Model Evaluation
+
+```{r}
+# Compute evaluation metrics
+```
+
+## Further Exploration
+
+```{r}
+# Additional analysis or research questions
+```

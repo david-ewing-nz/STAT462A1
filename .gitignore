@@ -18,6 +18,11 @@
 # Output files from R CMD check
 /*.Rcheck/
 
+# output file from knit
+code/*.pdf
+code/*.html
+data/*.csv
+
 # RStudio files
 .Rproj.user/
 
