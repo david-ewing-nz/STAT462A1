@@ -1,27 +1,40 @@
+---
+---
+---
+
 ## Data Preparation
 
-### Data Load and Variable Rename
+```{r}
+library(dplyr) # for data manipulation, providing efficient functions for tasks such as filtering, selecting columns, sorting, creating new variables, and summarizing data. 
+library(skimr) # for quick and detailed summaries of a dataset. It provides more comprehensive insights compared to the base summary() function, such as missing values, variable types, and distributions.
+library(flextable) # for creating and formatting attractive tables in R. It allows for customization of table appearance and can be used to generate tables for reports, especially when integrating with PDF, Word or PowerPoint.
+
+```
 
 ```{r}
-# load the dataset 'income.csv' into r as a data frame called 'income_dataset'
+# Loads the income.csv dataset from a zipped file located at zip_path
 zip_path <- "../data/datasets.zip"
-file.exists(zip_path)
+if (file.exists(zip_path)) {
 income_dataset <- read.csv(unz(zip_path, "income.csv"))
-# data column name exploration 
-str(income_dataset)
+} else {
+  stop("The zip file does not exist at the given path.")
+}
 
-# remove unnecessary columns and rename the feature names as `income` and `children`.
+# Uses the skim function from the skimr package to generate a summary of the dataset and then selects the skim_variable and n_missing columns, which likely represent variable names and the count of missing values, respectively.
+skimp <- skim(income_dataset) |>
+  select(skim_variable, n_missing)
+
+# Prints the summary (stored in the skimp object).
+skimp
+
+# Extracts two specific columns (Total.Household.Income and Members.with.age.5...17.years.old) from the dataset and renames them to income and children, respectively.
 income <- income_dataset$Total.Household.Income
 children <- income_dataset$Members.with.age.5...17.years.old
 ```
 
-### Data Validation And Cleaning
+### Data Initial Summary
 
 ```{r}
-# check for missing values
-cat("Number of missing values in Household Income:", sum(is.na(income)), "\n")
-cat("Number of missing values in Number of Children:", sum(is.na(children)), "\n")
-
 # summaries of variables
 cat("\nSummary of Household Income:\n", 
     paste(names(summary(income)), summary(income), sep = " = ", collapse = "\n"), "\n\n")
@@ -46,9 +59,13 @@ plot(children, income/10000, xlab = "Number of Children", ylab = "Household Inco
 set.seed(888)  
 # combine income and children into a data frame
 data <- data.frame(income = income, children = children)
-# split the data into training (80%) and test sets (20%)
-train_data <- data[sample(1:nrow(data), size = 0.8 * nrow(data)), ] #	sample() is a function for random sampling. Its first argument is the object to be sampled, and its second argument, size, specifies how many elements to be sampled.
-test_data <- data[-sample(1:nrow(data), size = 0.8 * nrow(data)), ]
+# Subset the data into training and test sets
+
+# Generate a random sample of row indices for training set (80% of the data)
+train_indices <- sample(1:nrow(data), size = 0.8 * nrow(data))
+# Subset the data into training and test sets
+train_data <- data[train_indices, ]
+test_data <- data[-train_indices, ]  # Use the remaining data for testing
 
 ```
 
@@ -65,44 +82,120 @@ summary(model)
 
 ### Model Explanation
 
-1.  What is the specific form of the affine-linear model, i.e. what are `b0` and `b1`?
+***3.a What is the specific form of the affine-linear model, i.e. what are b0 and b1?***
 
 -   The affine-linear model or SLR model (simple linear regression model) has the general form: $\text{income} = b_0 + b_1 \cdot \text{children}$
 
--   $b_0$ is the **intercept** (the value of income when children = 0). Our model's $b_0= 262735$
+-   $b_0$ is the **intercept,** telling the predicted income when children = 0. Our model's $b_0= 262735$
 
--   $b_1$ is the **slope** (the change in income for a one-unit increase in children). Our model's $b_1= -11256$
+-   $b_1$ is the **slope,** representing how income changes per additional child. Our model's $b_1= -11256$
 
--   So the specific form of our SLR model is:
+-   So the specific form of our SLR model is: $\text{income} = 262735 −11256 \cdot \text{children}$
 
-    $\text{income} = 262735 −11256 \cdot \text{children}$
-
-2.  What is the predicted mean income of a household with $𝑛$ children, for $\text{n} ∈ \{0,1,…,8\}$? What are the associated 90% prediction intervals? Summarize all of this in a table.
-
-    income of a household with $𝑛$ children
+***3.b.1 What is the predicted mean income of a household with*** $𝑛$ ***children, for*** $n \in \{0,1,…,8\}$ ***?***
 
 ```{r}
-# library(xtable)
-n <- array(0:8)
+# Define variables
+n <- 0:8  # n is defined as a vector
 b_0 <- 262735
 b_1 <- -11256
-alpha <- 0.1
-# tao <- 
-predict_income_n <- b_0+b_1*n
-true_mean_income_n <- tapply(df$income, df$n, mean) # 使用 tapply() 按 n 分组并计算每组的均值
 
-df <- data.frame(n = n, predicted_income  = predict_income_n,
-                 true_mean_income_n = true_mean_income_n
-                 )
-
-# 创建格式化的表格
-ft <- flextable(df)
-# 打印表格
-ft
-
-# cat(paste0("The predicted mean income of a household with 0-8 children = ",mean(income_n)),"\n")
+# Predict income based on the model trained by train_data 
+train_pred <- b_0 + b_1 * n
 ```
 
-When the sample number $\text{n}=8$, which is very small, we could .... (to be continue)
+***3.b.2 What are the associated 90% prediction intervals (PI)?***
 
-2.  Using your test set, check how many percent of datapoints lie within the 90% prediction intervals.
+$\text{Residual Standard Error (RSE)}$
+
+$\tau = t_\frac{\alpha}{2} \cdot \text{RSE}$
+
+$\text{prediction intervals} = \hat{y} \pm \tau$
+
+$\text{lower bound} = \hat{y} - \tau$
+
+$\text{upper bound} = \hat{y}+\tau$
+
+```{r}
+# Compute true mean income for each n from train_data
+true_mean_income_n <- tapply(train_data$income, train_data$children, mean)
+
+# Get residual standard error from model summary
+residual_se <- summary(model)$sigma  # Residual standard error
+
+# Find critical value for 90% prediction interval
+alpha <- 0.1
+t_crit <- qt(1 - alpha/2, df = summary(model)$df[2])  # Two-tailed t-value
+tau <- t_crit * residual_se
+# Compute the 90% prediction interval bounds
+lower_bound <- train_pred - tau
+upper_bound <- train_pred + tau
+```
+
+***3.b.3 Summarize all of above information in a table.***
+
+```{r}
+# Create a data frame
+test_results <- data.frame(
+  n = n, 
+  train_pred_mean,
+  lower_90 = lower_bound, 
+  upper_90 = upper_bound
+)
+
+# Create a flextable with custom headers
+set_flextable_defaults(
+    font.size = 8, 
+    theme_fun = theme_vanilla,
+    padding = 6,
+    background.color = "#EFEFEF")
+ft_test <- flextable(test_results) |>
+  set_header_labels(
+    n = "Number of Children",
+    train_pred_mean = "Actual Average Income",
+    train_pred = "Predicted Income",
+    lower_90 = "Lower Bound (90% PI)",
+    upper_90 = "Upper Bound (90% PI)"
+  ) |>
+autofit()  # Adjust column sizes automatically
+
+  
+# Print the table
+ft_test
+
+```
+
+***3.c.1 Using your test set, check how many percent of data points lie within the 90% prediction intervals.***
+
+To check how many data points in the test set fall within the 90% prediction intervals, we need to:
+
+1\. Predict income for test_data`$`children using the model.
+
+2\. Compute the 90% prediction interval for each prediction.
+
+3\. Count the number of test points where test_data`$`income falls inside the interval.
+
+4\. Calculate the percentage of test points that satisfy this condition.
+
+```{r}
+# Predict income for the test set
+test_pred <- predict(model, newdata = test_data, se.fit = TRUE, interval = "prediction", level = 0.90)
+
+# Extract the predicted values from the result of `predict()`, fit[,1]
+predicted_values <- test_pred$fit[, 1]  # The point predictions (mean of the prediction interval)
+
+# Compute prediction interval bounds from fit[,2] and fit[,3]
+lower_bound_test <- test_pred$fit[,2]
+upper_bound_test <- test_pred$fit[,3]
+
+# Check if test set income values fall within the interval
+within_interval <- (test_data$income >= lower_bound_test) & (test_data$income <= upper_bound_test)
+
+# Calculate percentage of points within the interval
+percentage_within <- mean(within_interval) * 100 # When mean() is called on this logical vector, the TRUE value is treated as 1 and the FALSE value is treated as 0. mean() then returns a ratio of 1, i.e., how many data points have revenue within the forecast range.
+
+# Print result
+cat("Percentage of test points within the 90% prediction interval:", percentage_within, "%\n")
+```
+
+***4. Do all steps of part 3. again, but this time you will be predicting log_income = log(income) instead of income.***
