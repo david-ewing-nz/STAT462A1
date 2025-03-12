@@ -13,7 +13,9 @@ params:
                     # with the team. 
 
 
-output: pdf_document
+output:
+  pdf_document:
+    latex_engine: xelatex
 ---
 
 ```{r setup, include=FALSE}
@@ -86,7 +88,7 @@ conflict_prefer("filter", "dplyr"); conflict_prefer("select", "dplyr")
 
 
 
-```{r, child="../code/question2.Rmd", eval=F}
+```{r, child="../code/question2.Rmd", eval=T}
 ```
 
 
