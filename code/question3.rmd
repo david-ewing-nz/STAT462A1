@@ -12,11 +12,13 @@
 
 ## Data Preparation
 
-```{r load-possums, include=FALSE, eval=T}
+```{r load-possums, include=F, eval=T}
 # Load and preprocess data-set
   zip_path <- "../data/datasets.zip"
   file.exists(zip_path)
   possums <- read.csv(unz(zip_path, "possums.csv"))
+  
+  set.seed(82171165) 
   pskim   <- skim(possums) |> select(skim_variable, n_missing)
   print(pskim)                           
   head(possums)    
@@ -66,7 +68,6 @@ if (length(outliers) > 0) {
 
 ```{r select-possum-predictors, include=T}
 
-
 # Access pthreshold from YAML params
 pthreshold   <- NULL                                            # reset
 pthreshold   <- params$pthreshold                               # as text for testing
@@ -77,24 +78,12 @@ if (is.null(pthreshold) || length(pthreshold) == 0) {           # If NULL or emp
   pthreshold <- as.numeric(pthreshold)                          # numeric value
 }
 
+cat("pthreshold: ", pthreshold)
 possums_tmp  <- possums_1 |> relocate(age, .after = last_col()) # age is last
 pnumerics    <- possums_tmp |> select(where(is.numeric))        # only use numeric columns
 pmatrix      <- cor(pnumerics, use = "complete.obs")            # compute correlation matrix
 ppredictors  <- pmatrix["age", ]                                # values relative to age 
 ggcorr(pnumerics, label = TRUE)                                 # visualise correlation matrix 
-
-# filter string
-#
-pfilter      <- abs(ppredictors) >= pthreshold & names(ppredictors) != "age"
-
-ppnames      <- names(ppredictors[pfilter])                     # now we know the names of the columns to use. 
-pnames_na    <- c(ppnames, "age")                               # Include age to keep the 
-
-if (length(ppnames) == 0) {
-  pformula   <- as.formula("age ~ 1")                           # default formula : intercept-only 
-} else {
-  pformula   <- as.formula(paste("age ~", paste(ppnames, collapse=" + ")))   
-}
 
 
 
@@ -102,6 +91,21 @@ if (length(ppnames) == 0) {
 ```
 
 ```{r possum-rinse-and-repeat, include=T}
+# filter string
+#
+pfilter      <- abs(ppredictors) >= pthreshold & names(ppredictors) != "age"
+
+ppnames      <- names(ppredictors[pfilter])              # now we know the names of the columns to use.        
+pnumerics_   <- pnumerics[, c(ppnames, "age"), drop = FALSE]
+
+#pnames_na <- c(ppnames, "age") # Include age to keep th
+ggcorr(pnumerics_, label = TRUE)                                 # visualise correlation matrix 
+
+if (length(ppnames) == 0) {
+  pformula   <- as.formula("age ~ 1")                           # default formula : intercept-only 
+} else {
+  pformula   <- as.formula(paste("age ~", paste(ppnames, collapse=" + ")))   
+}
 possums_tm1 <- possums_tmp
 for (col in ppnames) {
   possums_tmp <- remove_outliers(possums_tmp, col)

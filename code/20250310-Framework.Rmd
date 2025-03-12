@@ -51,7 +51,7 @@ conflict_prefer("filter", "dplyr"); conflict_prefer("select", "dplyr")
 # library(skimr)
 ```
 
-```{r just-checkin, include=FALSE}
+```{r just-checkin, include=F, eval=F}
   
   # is the folder and file structure 
   # constructed correctly? 
@@ -95,5 +95,5 @@ conflict_prefer("filter", "dplyr"); conflict_prefer("select", "dplyr")
 # Predicting Possum Age
 
 
-```{r, child="../code/question3.Rmd", eval=T}
+```{r load-question3, child="../code/question3.Rmd", eval=T}
 ```
