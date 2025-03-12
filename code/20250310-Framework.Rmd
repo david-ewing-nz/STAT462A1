@@ -5,6 +5,14 @@ author:
  -  David Ewing (82171165)  
  -  Xia Yu (62380486) 
 date: "`r Sys.Date()`"
+
+params:
+  pthreshold: 0.25  # DEE: pthreshold is a parameter for possum correlation. 
+                    # it is made visible here in the yaml code. 
+                    # A better explaination will be provided after discussion 
+                    # with the team. 
+
+
 output: pdf_document
 ---
 
@@ -78,12 +86,12 @@ conflict_prefer("filter", "dplyr"); conflict_prefer("select", "dplyr")
 
 
 
-```{r, child="../code/question2.Rmd"}
+```{r, child="../code/question2.Rmd", eval=F}
 ```
 
 
 # Predicting Possum Age
 
 
-```{r, child="../code/question3.Rmd"}
+```{r, child="../code/question3.Rmd", eval=T}
 ```

@@ -12,7 +12,7 @@
 
 ## Data Preparation
 
-```{r load-possums, include=FALSE}
+```{r load-possums, include=FALSE, eval=T}
 # Load and preprocess data-set
   zip_path <- "../data/datasets.zip"
   file.exists(zip_path)
@@ -24,7 +24,7 @@
 ```
 
 ## Data Cleaning and  Initial Analysis
-```{r analyse-possums, include=T }
+```{r analyse-possums, include=T , eval=T}
 
 remove_outliers <- function(df, col) {        
   outliers <- boxplot.stats(df[[col]])$out  #  outliers
@@ -61,17 +61,20 @@ if (length(outliers) > 0) {
 
 
 
-```{r select-possum-predictors,include=T, threshold=0.25}
+```{r select-possum-predictors, include=T}
+
+
+# Access pthreshold from YAML params
+pthreshold   <- NULL
+pthreshold   <- as.numeric(params$pthreshold) 
 posssums_tmp <- possums_1 |> relocate(age, .after = last_col()) # age is last
 pnumerics    <- posssums_tmp |> select(where(is.numeric))       # only use numeric values
 pmatrix      <- cor(pnumerics, use = "complete.obs")            # compute correlation matrix
 ppredictors  <- pmatrix["age", ]                                # values relative to age 
-ggcorr(pnumerics, label = TRUE)                                 # visualise correlation matrix
-pthreshold   <- knitr::opts_current$get("threshold")            # get threshold from header 
-pthreshold   <- 0.25
-print(str(ppredictors))                                         # Check structure
-print(class(ppredictors))                                       # Check class
-print(ppredictors)                                              # Check content
+ggcorr(pnumerics, label = TRUE)                                 # visualise correlation matrix 
+if (is.null(pthreshold) || length(pthreshold) == 0) {           # If NULL or empty, assign default
+  pthreshold <- 0.2  # Set default
+}  
 pfilter      <- abs(ppredictors) >= pthreshold & names(ppredictors) != "age"
 ppnames      <- names(ppredictors[pfilter])
 pformula     <- as.formula(paste("age ~", paste(ppnames, collapse=" + ")))
