@@ -68,25 +68,32 @@ if (length(outliers) > 0) {
 
 
 # Access pthreshold from YAML params
-pthreshold   <- NULL
-pthreshold   <- as.numeric(params$pthreshold) 
+pthreshold   <- NULL                                            # reset
+pthreshold   <- params$pthreshold                               # as text for testing
+if (is.null(pthreshold) || length(pthreshold) == 0) {           # If NULL or empty, assign default
+  pthreshold <- 0.2                                             # use default
+  message("⚠️ pthreshold set to default: ", pthreshold, " as header value was invalid.")
+} else {
+  pthreshold <- as.numeric(pthreshold)                          # numeric value
+}
+
 possums_tmp  <- possums_1 |> relocate(age, .after = last_col()) # age is last
-pnumerics    <- possums_tmp |> select(where(is.numeric))        # only use numeric values
+pnumerics    <- possums_tmp |> select(where(is.numeric))        # only use numeric columns
 pmatrix      <- cor(pnumerics, use = "complete.obs")            # compute correlation matrix
 ppredictors  <- pmatrix["age", ]                                # values relative to age 
 ggcorr(pnumerics, label = TRUE)                                 # visualise correlation matrix 
-if (is.null(pthreshold) || length(pthreshold) == 0) {           # If NULL or empty, assign default
-  pthreshold <- 0.2  # Set default
-}  
+
+# filter string
+#
 pfilter      <- abs(ppredictors) >= pthreshold & names(ppredictors) != "age"
 
 ppnames      <- names(ppredictors[pfilter])                     # now we know the names of the columns to use. 
 pnames_na    <- c(ppnames, "age")                               # Include age to keep the 
 
 if (length(ppnames) == 0) {
-  pformula   <- as.formula("age ~ 1")                           # intercept-only 
+  pformula   <- as.formula("age ~ 1")                           # default formula : intercept-only 
 } else {
-  pformula   <- as.formula(paste("age ~", paste(ppnames, collapse=" + ")))  # now we know the names of the columns to use. 
+  pformula   <- as.formula(paste("age ~", paste(ppnames, collapse=" + ")))   
 }
 
 
