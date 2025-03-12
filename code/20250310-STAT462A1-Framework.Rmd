@@ -5,7 +5,8 @@ author:
  -  David Ewing (82171165)  
  -  Xia Yu (62380486) 
 date: "`r Sys.Date()`"
-pdf_document:
+output:
+  pdf_document:
     latex_engine: xelatex
 ---
 
