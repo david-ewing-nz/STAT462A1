@@ -17,8 +17,8 @@
   zip_path <- "../data/datasets.zip"
   file.exists(zip_path)
   possums <- read.csv(unz(zip_path, "possums.csv"))
-  skimp   <- skim(possums) |> select(skim_variable, n_missing)
-  print(skimp)                           
+  pskim   <- skim(possums) |> select(skim_variable, n_missing)
+  print(pskim)                           
   head(possums)    
   summary(possums)
 ```
@@ -34,7 +34,6 @@ remove_outliers <- function(df, col) {
   return(df)
 }
 
-
 possums_0 <- possums |> drop_na(age)   # drop missing age       
 
 # visualise age 
@@ -48,6 +47,7 @@ outliers <- boxplot.stats(possums_0$age)$out # wiskers
 print(outliers)
 
 # possums_1 contains chunk result
+possums_1 = NULL
 if (length(outliers) > 0) {
   possums_1 <- remove_outliers(possums_0, "age")
   message("outliers found/removed.")
@@ -61,14 +61,17 @@ if (length(outliers) > 0) {
 
 
 
+
+
+
 ```{r select-possum-predictors, include=T}
 
 
 # Access pthreshold from YAML params
 pthreshold   <- NULL
 pthreshold   <- as.numeric(params$pthreshold) 
-posssums_tmp <- possums_1 |> relocate(age, .after = last_col()) # age is last
-pnumerics    <- posssums_tmp |> select(where(is.numeric))       # only use numeric values
+possums_tmp  <- possums_1 |> relocate(age, .after = last_col()) # age is last
+pnumerics    <- possums_tmp |> select(where(is.numeric))        # only use numeric values
 pmatrix      <- cor(pnumerics, use = "complete.obs")            # compute correlation matrix
 ppredictors  <- pmatrix["age", ]                                # values relative to age 
 ggcorr(pnumerics, label = TRUE)                                 # visualise correlation matrix 
@@ -76,17 +79,35 @@ if (is.null(pthreshold) || length(pthreshold) == 0) {           # If NULL or emp
   pthreshold <- 0.2  # Set default
 }  
 pfilter      <- abs(ppredictors) >= pthreshold & names(ppredictors) != "age"
-ppnames      <- names(ppredictors[pfilter])
+
+ppnames      <- names(ppredictors[pfilter])                     # now we know the names of the columns to use. 
+pnames_na    <- c(ppnames, "age")                               # Include age to keep the 
+
 pformula     <- as.formula(paste("age ~", paste(ppnames, collapse=" + ")))
-plinear_m    <- lm(pformula, data = possums_1)
-summary(plinear_m)
+```
+
+```{r possum-repeat-clean, include=T}
+possums_tm1 <- possums_tmp
+for (col in ppnames) {
+  possums_tmp <- remove_outliers(possums_tmp, col)
+}
+
 ```
 
 
-```{r residual-analysis, include=T}
-par(mfrow = c(2, 2))  # Arrange plots in 2x2 grid
-plot(plinear_m)
 
+```{r analyse-possum-lm1, include=T}
+
+plinear_m1    <- lm(pformula, data = possums_tm1)
+plinear_m2    <- lm(pformula, data = possums_tmp)
+
+summary(plinear_m1)
+summary(plinear_m2)
+
+par(mfrow = c(2, 2))  # Arrange plots in 2x2 grid
+plot(plinear_m1)
+plot(plinear_m2)
+```
 ## Feature Selection and Model Training
 
 ```{r}
@@ -96,6 +117,8 @@ plot(plinear_m)
 ## Model Evaluation
 
 ```{r}
+# Residuals vs. Leverage plot shows potential high-leverage points, which may be influencing the model too much
+
 # Compute evaluation metrics
 ```
 
