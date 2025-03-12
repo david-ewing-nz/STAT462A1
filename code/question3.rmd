@@ -24,7 +24,7 @@
 ```
 
 ## Data Cleaning and  Initial Analysis
-```{r analyse-possums, include=T , eval=T}
+```{r init-possums-analysis, include=T , eval=T}
 
 remove_outliers <- function(df, col) {        
   outliers <- boxplot.stats(df[[col]])$out  #  outliers
@@ -83,10 +83,18 @@ pfilter      <- abs(ppredictors) >= pthreshold & names(ppredictors) != "age"
 ppnames      <- names(ppredictors[pfilter])                     # now we know the names of the columns to use. 
 pnames_na    <- c(ppnames, "age")                               # Include age to keep the 
 
-pformula     <- as.formula(paste("age ~", paste(ppnames, collapse=" + ")))
+if (length(ppnames) == 0) {
+  pformula   <- as.formula("age ~ 1")                           # intercept-only 
+} else {
+  pformula   <- as.formula(paste("age ~", paste(ppnames, collapse=" + ")))  # now we know the names of the columns to use. 
+}
+
+
+
+
 ```
 
-```{r possum-repeat-clean, include=T}
+```{r possum-rinse-and-repeat, include=T}
 possums_tm1 <- possums_tmp
 for (col in ppnames) {
   possums_tmp <- remove_outliers(possums_tmp, col)
@@ -96,15 +104,15 @@ for (col in ppnames) {
 
 
 
-```{r analyse-possum-lm1, include=T}
+```{r possum-lm-analysis, include=T}
 
-plinear_m1    <- lm(pformula, data = possums_tm1)
-plinear_m2    <- lm(pformula, data = possums_tmp)
+plinear_m1 <- lm(pformula, data = possums_tm1)
+plinear_m2 <- lm(pformula, data = possums_tmp)
 
-summary(plinear_m1)
-summary(plinear_m2)
+summary(plinear_m1)   # with    outliers
+summary(plinear_m2)   # without outliers
 
-par(mfrow = c(2, 2))  # Arrange plots in 2x2 grid
+par(mfrow = c(2, 4))  # Arrange plots in 2x4 grid
 plot(plinear_m1)
 plot(plinear_m2)
 ```
