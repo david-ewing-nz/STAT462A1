@@ -76,9 +76,23 @@ if (is.null(pthreshold) || length(pthreshold) == 0) {           # If NULL or emp
   pthreshold <- 0.2  # Set default
 }  
 pfilter      <- abs(ppredictors) >= pthreshold & names(ppredictors) != "age"
-ppnames      <- names(ppredictors[pfilter])
+ppnames      <- names(ppredictors[pfilter])                     #  now we know the names of the columns to use. 
+
+
+
+pnames_na    <- c(ppnames, "age")                               # Include age to keep the 
+
 pformula     <- as.formula(paste("age ~", paste(ppnames, collapse=" + ")))
-plinear_m    <- lm(pformula, data = possums_1)
+```
+
+```{r possum-repeat-clean, include=T}
+
+for (col in ppnames) {
+  posssums_tmp <- remove_outliers(posssums_tmp, col)
+}
+
+
+plinear_m    <- lm(pformula, data = posssums_tmp)
 summary(plinear_m)
 ```
 
@@ -96,6 +110,8 @@ plot(plinear_m)
 ## Model Evaluation
 
 ```{r}
+# Residuals vs. Leverage plot shows potential high-leverage points, which may be influencing the model too much
+
 # Compute evaluation metrics
 ```
 
