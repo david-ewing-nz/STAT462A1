@@ -18,7 +18,7 @@ options(repos = c(CRAN = "https://cran.stat.auckland.ac.nz/"))
 
 # Required packages
 required_packages <- c("conflicted", "ggplot2", "dplyr", "class", "tidyverse",
-                       "flextable", "skimr")
+                       "flextable", "skimr", "GGally")
 
 # Install and load missing packages in a single step
 for (pkg in required_packages) {
@@ -57,10 +57,13 @@ conflict_prefer("filter", "dplyr"); conflict_prefer("select", "dplyr")
 # Load and preprocess dataset
 # eval=FALSE until agreed by all parties. 
   zip_path <- "../data/datasets.zip"
-  file.exists(zip_path)
-  braking <- read.csv(unz(zip_path, "braking.csv"))
-  income  <- read.csv(unz(zip_path, "income.csv"))
-  possums <- read.csv(unz(zip_path, "possums.csv"))
+  if (file.exists(zip_path)) {
+    braking <- read.csv(unz(zip_path, "braking.csv"))
+    income  <- read.csv(unz(zip_path, "income.csv"))
+    possums <- read.csv(unz(zip_path, "possums.csv"))
+  } else {
+    stop(paste(zip_path, " not found."))
+  }
 ``` 
 
 # Braking Distance
