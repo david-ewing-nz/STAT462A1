@@ -11,8 +11,6 @@ params:
                     # it is made visible here in the yaml code. 
                     # A better explaination will be provided after discussion 
                     # with the team. 
-
-
 output:
   pdf_document:
     latex_engine: xelatex

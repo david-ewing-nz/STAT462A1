@@ -10,7 +10,7 @@
 ```
 
 
-## Data Preparation
+## Load Data
 
 ```{r load-possums, include=F, eval=T}
 # Load and preprocess data-set
@@ -19,14 +19,20 @@
   possums <- read.csv(unz(zip_path, "possums.csv"))
   
   set.seed(82171165) 
+
+```
+
+## EDA - Data Cleaning and  Initial Analysis
+```{r possums-EDA, include=T , eval=T}
+
   pskim   <- skim(possums) |> select(skim_variable, n_missing)
   print(pskim)                           
   head(possums)    
   summary(possums)
+  
 ```
 
-## Data Cleaning and  Initial Analysis
-```{r init-possums-analysis, include=T , eval=T}
+```{r possum-datacleaning}
 
 remove_outliers <- function(df, col) {        
   outliers <- boxplot.stats(df[[col]])$out  #  outliers
@@ -79,8 +85,8 @@ if (is.null(pthreshold) || length(pthreshold) == 0) {           # If NULL or emp
 }
 
 cat("pthreshold: ", pthreshold)
-possums_tmp  <- possums_1 |> relocate(age, .after = last_col()) # age is last
-pnumerics    <- possums_tmp |> select(where(is.numeric))        # only use numeric columns
+possums_2    <- possums_1 |> relocate(age, .after = last_col()) # age is last
+pnumerics    <- possums_2 |> select(where(is.numeric))        # only use numeric columns
 pmatrix      <- cor(pnumerics, use = "complete.obs")            # compute correlation matrix
 ppredictors  <- pmatrix["age", ]                                # values relative to age 
 ggcorr(pnumerics, label = TRUE)                                 # visualise correlation matrix 
@@ -100,13 +106,16 @@ pnumerics_   <- pnumerics[, c(ppnames, "age"), drop = FALSE]
 
 #pnames_na <- c(ppnames, "age") # Include age to keep th
 ggcorr(pnumerics_, label = TRUE)                                 # visualise correlation matrix 
+```
+
+```{r possum-numeric-sex}
 
 if (length(ppnames) == 0) {
   pformula   <- as.formula("age ~ 1")                           # default formula : intercept-only 
 } else {
   pformula   <- as.formula(paste("age ~", paste(ppnames, collapse=" + ")))   
 }
-possums_tm1 <- possums_tmp
+
 for (col in ppnames) {
   possums_tmp <- remove_outliers(possums_tmp, col)
 }
@@ -126,10 +135,16 @@ summary(plinear_m2)   # without outliers
 par(mfrow = c(2, 4))  # Arrange plots in 2x4 grid
 plot(plinear_m1)
 plot(plinear_m2)
+
+
+
 ```
 ## Feature Selection and Model Training
 
 ```{r}
+possums_3 <- possums_2 |> mutate(sex = ifelse(sex == "f", 1, 0)) #sex converted to numeric
+
+
 # Forward feature selection and model training
 ```
 
