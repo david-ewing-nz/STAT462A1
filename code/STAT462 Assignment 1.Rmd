@@ -50,20 +50,20 @@ conflict_prefer("filter", "dplyr"); conflict_prefer("select", "dplyr")
 ```
 
 ```{r just-checkin, include=F, eval=F}
-  
-  # is the folder and file structure 
-  # constructed correctly? 
-  dir.exists("../code/")
-  file.exists("../code/question1.Rmd")
-  file.exists("../code/question2.Rmd")
-  file.exists("../code/question3.Rmd")
+# is the folder and file structure 
+# constructed correctly? 
+dir.exists("../code/")
+file.exists("../code/question1.Rmd")
+file.exists("../code/question2.Rmd")
+file.exists("../code/question3.Rmd")
+
 ```
 
 # Load all Data 
 
-```{r load-common-data, eval=FALSE, include=FALSE }
+```{r load-common-data, eval=T, include=FALSE }
 # Load and preprocess dataset
-# eval=FALSE until agreed by all parties. 
+# eval=TRUE, as agreeded on 20250313. 
   zip_path <- "../data/datasets.zip"
   if (file.exists(zip_path)) {
     braking <- read.csv(unz(zip_path, "braking.csv"))
@@ -72,12 +72,24 @@ conflict_prefer("filter", "dplyr"); conflict_prefer("select", "dplyr")
   } else {
     stop(paste(zip_path, " not found."))
   }
+
 ``` 
+
+```{r common-functions, eval=T}
+remove_outliers <- function(df, col) {        
+  outliers <- boxplot.stats(df[[col]])$out  #  outliers
+  if (length(outliers) > 0) {               #  remove if outliers 
+    df <- df |> filter(!(df[[col]] %in% outliers))
+  }
+  return(df)
+}
+
+```
 
 # Braking Distance
 
 
-```{r, child="../code/question1.Rmd"}
+```{r, child="../code/question1.Rmd", eval=T}
 ```
 
 
