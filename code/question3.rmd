@@ -1,4 +1,5 @@
 
+
 # ---------------------------
 
 ## Description
@@ -12,71 +13,45 @@
 
 ## Load Data
 
-```{r load-possums, include=F, eval=T}
+```{r load-possums, include=F, eval=F}
+
 # Load and preprocess data-set
-  zip_path <- "../data/datasets.zip"
-  file.exists(zip_path)
-  possums <- read.csv(unz(zip_path, "possums.csv"))
-  
-  set.seed(82171165) 
+# Performed in framework file as agreed 20250313
+zip_path <- "../data/datasets.zip"
+file.exists(zip_path)
+possums <- read.csv(unz(zip_path, "possums.csv"))
 
 ```
 
 ## EDA - Data Cleaning and  Initial Analysis
-```{r possums-EDA, include=T , eval=T}
 
-  pskim   <- skim(possums) |> select(skim_variable, n_missing)
-  print(pskim)                           
-  head(possums)    
-  summary(possums)
+```{r possums-EDA-start, include=T , eval=T}
+
+set.seed(82171165) 
+pskim   <- skim(possums) |> select(skim_variable, n_missing)
+print(pskim)                           
+head(possums)    
+summary(possums)
   
 ```
 
-```{r possum-datacleaning}
-
-remove_outliers <- function(df, col) {        
-  outliers <- boxplot.stats(df[[col]])$out  #  outliers
-  if (length(outliers) > 0) {               #  remove if outliers 
-    df <- df |> filter(!(df[[col]] %in% outliers))
-  }
-  return(df)
-}
+```{r possum-clean-age}
 
 possums_0 <- possums |> drop_na(age)   # drop missing age       
-
+possums_0 <- remove_outliers(possums_0,"age")
 # visualise age 
 ggplot(possums_0, aes(x = age)) +
   geom_histogram(binwidth = 1, fill = "blue", color = "black") +
   ggtitle("Possum Ages Distribution") +
   theme_minimal()
 
-# Identify outliers
-outliers <- boxplot.stats(possums_0$age)$out # wiskers
-print(outliers)
-
-# possums_1 contains chunk result
-possums_1 = NULL
-if (length(outliers) > 0) {
-  possums_1 <- remove_outliers(possums_0, "age")
-  message("outliers found/removed.")
-} else {
-  possums_1 <- possums_0  # Keep possums_0 
-  message("no outliers.")
-}
-
 ```
 
-
-
-
-
-
-
-```{r select-possum-predictors, include=T}
+```{r get-yaml-params, include=T}
 
 # Access pthreshold from YAML params
 pthreshold   <- NULL                                            # reset
-pthreshold   <- params$pthreshold                               # as text for testing
+pthreshold   <- params$pthreshold                               # from yaml parameters
 if (is.null(pthreshold) || length(pthreshold) == 0) {           # If NULL or empty, assign default
   pthreshold <- 0.2                                             # use default
   message("⚠️ pthreshold set to default: ", pthreshold, " as header value was invalid.")
@@ -85,68 +60,59 @@ if (is.null(pthreshold) || length(pthreshold) == 0) {           # If NULL or emp
 }
 
 cat("pthreshold: ", pthreshold)
-possums_2    <- possums_1 |> relocate(age, .after = last_col()) # age is last
-pnumerics    <- possums_2 |> select(where(is.numeric))        # only use numeric columns
+
+```
+
+```{r select-possum-participants}
+
+possums_2    <- possums_0 |> relocate(age, .after = last_col()) # age is last for ease of analysis 
+ 
+pnumerics    <- possums_2 |> select(where(is.numeric))          # only use numeric columns
 pmatrix      <- cor(pnumerics, use = "complete.obs")            # compute correlation matrix
-ppredictors  <- pmatrix["age", ]                                # values relative to age 
+ppredictors  <- pmatrix["age", ]                                # matrix values relative to age 
 ggcorr(pnumerics, label = TRUE)                                 # visualise correlation matrix 
 
-
-
-
-```
-
-```{r possum-rinse-and-repeat, include=T}
-# filter string
-#
-pfilter      <- abs(ppredictors) >= pthreshold & names(ppredictors) != "age"
-
-ppnames      <- names(ppredictors[pfilter])              # now we know the names of the columns to use.        
-pnumerics_   <- pnumerics[, c(ppnames, "age"), drop = FALSE]
-
-#pnames_na <- c(ppnames, "age") # Include age to keep th
-ggcorr(pnumerics_, label = TRUE)                                 # visualise correlation matrix 
-```
-
-```{r possum-numeric-sex}
+pfilter      <- abs(ppredictors) >= pthreshold & names(ppredictors) != "age"  #bool list of participants 
+ppnames      <- names(ppredictors[pfilter])                     # named list of participants.  
+possums_3    <- possums_2                                       # copy for cleanup the participant columns
+for (col in ppnames) {                                          # cleanup outliers and na
+  possums_3  <- possums_3 |> drop_na(col)                        # drop na rows of participants
+  if (is.numeric(possums_3[[col]])) {
+      possums_3 <- remove_outliers(possums_3, col)              # remove outliers for participants
+    }
+ }
+possums_3 <- possums_3 |> mutate(female = ifelse(sex == "f", 1, 0))
 
 if (length(ppnames) == 0) {
-  pformula   <- as.formula("age ~ 1")                           # default formula : intercept-only 
+  pformula <- as.formula("age ~ 1")                           # default formula : intercept-only 
 } else {
-  pformula   <- as.formula(paste("age ~", paste(ppnames, collapse=" + ")))   
+  pformula <- as.formula(paste("age ~", paste(ppnames, collapse=" + ")))   
 }
 
-for (col in ppnames) {
-  possums_tmp <- remove_outliers(possums_tmp, col)
-}
 
 ```
+
+
+
 
 
 
 ```{r possum-lm-analysis, include=T}
 
-plinear_m1 <- lm(pformula, data = possums_tm1)
-plinear_m2 <- lm(pformula, data = possums_tmp)
+plinear_m2 <- lm(pformula, data = possums_2)
+plinear_m3 <- lm(pformula, data = possums_3)
 
-summary(plinear_m1)   # with    outliers
-summary(plinear_m2)   # without outliers
+summary(plinear_m2)   # with    outliers
+summary(plinear_m3)   # without outliers
 
 par(mfrow = c(2, 4))  # Arrange plots in 2x4 grid
-plot(plinear_m1)
 plot(plinear_m2)
-
-
+plot(plinear_m3)
 
 ```
 ## Feature Selection and Model Training
 
-```{r}
-possums_3 <- possums_2 |> mutate(sex = ifelse(sex == "f", 1, 0)) #sex converted to numeric
 
-
-# Forward feature selection and model training
-```
 
 ## Model Evaluation
 

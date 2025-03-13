@@ -9,8 +9,8 @@ date: "`r Sys.Date()`"
 params:
   pthreshold: 0.25  # DEE: pthreshold is a parameter for possum correlation. 
                     # it is made visible here in the yaml code. 
-                    # A better explaination will be provided after discussion 
-                    # with the team. 
+                    # It is a parameter than will be tweaked by the user 
+                    # if/when the data is updated in subsequent runs.  
 output:
   pdf_document:
     latex_engine: xelatex
@@ -61,7 +61,7 @@ file.exists("../code/question3.Rmd")
 
 # Load all Data 
 
-```{r load-common-data, eval=T, include=FALSE }
+```{r load-dataset, eval=T, include=FALSE }
 # Load and preprocess dataset
 # eval=TRUE, as agreeded on 20250313. 
   zip_path <- "../data/datasets.zip"
@@ -77,7 +77,7 @@ file.exists("../code/question3.Rmd")
 
 ```{r common-functions, eval=T}
 remove_outliers <- function(df, col) {        
-  outliers <- boxplot.stats(df[[col]])$out  #  outliers
+  outliers <- boxplot.stats(df[[col]])$out  #  outliers for col
   if (length(outliers) > 0) {               #  remove if outliers 
     df <- df |> filter(!(df[[col]] %in% outliers))
   }
