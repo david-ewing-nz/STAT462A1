@@ -24,9 +24,17 @@ params:
                     # 'pthreshold' is made visible here in the yaml code such 
                     # that the user does not have to dive into the code to make  
                     # adhoc changes when re-knitting this file for new data.   
-output:
+# output:
+#   pdf_document:
+#     latex_engine: xelatex
+    
+
+output: 
   pdf_document:
     latex_engine: xelatex
+header-includes:
+  - \usepackage{fancyvrb}
+  - \RecustomVerbatimEnvironment{verbatim}{Verbatim}{xleftmargin=5mm}
 ---
 
 ```{r setup, include=FALSE}
@@ -38,8 +46,9 @@ output:
 options(repos = c(CRAN = "https://cran.stat.auckland.ac.nz/"))
 
 # Required packages
-required_packages <- c("conflicted", "ggplot2", "dplyr", "class", "tidyverse",
-                       "flextable", "skimr", "GGally", "MASS", "car")
+required_packages <- c("conflicted", "ggplot2", "dplyr", "class",  
+                       "tidyverse", "flextable", "skimr", "GGally",
+                       "MASS", "car", "formatR")
 
 # Install and load missing packages in a single step and quietly
 for (pkg in required_packages) {
@@ -51,6 +60,8 @@ for (pkg in required_packages) {
 
 conflict_prefer("filter", "dplyr"); conflict_prefer("select", "dplyr")
 
+
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE, width = 70)
 # THIS IS THE MANUAL WAY. I am happy to help you get your
 # library into the loop above if you have problems doing 
 # this on your own. 
@@ -97,12 +108,27 @@ remove_outliers <- function(df, col) {
   return(df)
 }
 
+remove_outliers_IQR <- function(df, col, multiplier = 5, upper_cap = Inf) {        
+  # Calculate IQR (Quartile distance)
+  Q1 <- quantile(df[[col]], 0.25, na.rm = TRUE)  # The first quartile
+  Q3 <- quantile(df[[col]], 0.75, na.rm = TRUE)  # The third quartile
+  IQR_value <- Q3 - Q1  # IQR value
+  
+  # set lower_bound and upper_bound, upper_cap can be manually set
+  lower_bound <- Q1 - multiplier * IQR_value  
+  upper_bound <- min(Q3 + multiplier * IQR_value, upper_cap)  # upper_cap can be set manually
+  # print(upper_bound)
+  # filter ouliers
+  df_clean <- df |> filter(df[[col]] >= lower_bound & df[[col]] <= upper_bound)
+  
+  return(df_clean)
+}
+
 ```
 
 # Braking Distance
 
 
-```{r, child="../code/question1.Rmd", eval=T}
 ```
 
 
@@ -111,12 +137,10 @@ remove_outliers <- function(df, col) {
 
 
 
-```{r, child="../code/question2.Rmd", eval=T}
 ```
 
 
 # Predicting Possum Age
 
 
-```{r load-question3, child="../code/question3.Rmd", eval=T}
 ```
