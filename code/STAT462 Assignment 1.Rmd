@@ -1,16 +1,29 @@
 ---
 title: "STAT462 Assignment 1"
 author:  
- -  Simon Clark (XXXXXXXX) 
+ -  Simon Clark (97211898) 
  -  David Ewing (82171165)  
  -  Xia Yu (62380486) 
 date: "`r Sys.Date()`"
 
+#User parameters
 params:
-  pthreshold: 0.25  # DEE: pthreshold is a parameter for possum correlation. 
-                    # it is made visible here in the yaml code. 
-                    # It is a parameter than will be tweaked by the user 
-                    # if/when the data is updated in subsequent runs.  
+  pthreshold: 0.25  # DEE: For question 3, This value is a threshould for the 
+                    # coorelation matrix used in question 3 to determine which 
+                    # variables are to participate in the model.  
+                    #
+                    # A correlation value greater than 'pthreshold' is required
+                    # to participate in the model. 
+                    #
+                    # It is assumed that the .Rmd file will be re-run on a 
+                    # simi-regular basis by a user group as new data becomes
+                    # available. As such, the potential is that the correlation 
+                    # associated with variables is subject to change and the 
+                    # threshold to participate may change. 
+                    #
+                    # 'pthreshold' is made visible here in the yaml code such 
+                    # that the user does not have to dive into the code to make  
+                    # adhoc changes when re-knitting this file for new data.   
 output:
   pdf_document:
     latex_engine: xelatex
@@ -28,7 +41,7 @@ options(repos = c(CRAN = "https://cran.stat.auckland.ac.nz/"))
 required_packages <- c("conflicted", "ggplot2", "dplyr", "class", "tidyverse",
                        "flextable", "skimr", "GGally")
 
-# Install and load missing packages in a single step
+# Install and load missing packages in a single step and quietly
 for (pkg in required_packages) {
   if (!requireNamespace(pkg, quietly = TRUE)) {
     install.packages(pkg)
@@ -61,9 +74,9 @@ file.exists("../code/question3.Rmd")
 
 # Load all Data 
 
-```{r load-dataset, eval=T, include=FALSE }
+```{r load-dataset, eval=T, include=F}
 # Load and preprocess dataset
-# eval=TRUE, as agreeded on 20250313. 
+# eval=TRUE, as agreed to on 20250313. 
   zip_path <- "../data/datasets.zip"
   if (file.exists(zip_path)) {
     braking <- read.csv(unz(zip_path, "braking.csv"))
@@ -75,7 +88,7 @@ file.exists("../code/question3.Rmd")
 
 ``` 
 
-```{r common-functions, eval=T}
+```{r common-functions, eval=T, include=F}
 remove_outliers <- function(df, col) {        
   outliers <- boxplot.stats(df[[col]])$out  #  outliers for col
   if (length(outliers) > 0) {               #  remove if outliers 
