@@ -129,6 +129,7 @@ remove_outliers_IQR <- function(df, col, multiplier = 5, upper_cap = Inf) {
 # Braking Distance
 
 
+```{r, child="../code/question1.Rmd", eval=T}
 ```
 
 
@@ -137,10 +138,12 @@ remove_outliers_IQR <- function(df, col, multiplier = 5, upper_cap = Inf) {
 
 
 
+```{r, child="../code/question2.Rmd", eval=T}
 ```
 
 
 # Predicting Possum Age
 
 
+```{r load-question3, child="../code/question3.Rmd", eval=T}
 ```

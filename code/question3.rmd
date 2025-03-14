@@ -11,8 +11,7 @@
 ```
 ## Discription
 
-```{r question3-status, eval=T}
-
+```{r question3-status, include=F, eval=T}
 # created with the help of ChatGPT as this is not a deliverable. 
 # dataframe with workflow steps
 pdf_workflow <- data.frame(
@@ -56,6 +55,9 @@ ptable_workflow
 
 ```
 
+```{r}
+ptable_workflow
+```
 
 
 ## Load Data
