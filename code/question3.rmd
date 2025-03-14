@@ -9,6 +9,53 @@
   knitr::include_graphics("../images/possum_age_plot.png")
 
 ```
+## Discription
+
+```{r question3-status, eval=T}
+
+# created with the help of ChatGPT as this is not a deliverable. 
+# dataframe with workflow steps
+pdf_workflow <- data.frame(
+  Step = c(      "1. initial analysis", 
+                 "2. Exploratory Data Analysis", 
+                 "3. Initial Feature Selection", 
+                 "4. Model Evaluation", 
+                 "5. Refinement of Selected Model", 
+                 "6. Performance Testing"),
+
+  Process = c(   "Remove irrelevant columns (`case`, `Pop`), encode categorical variables", 
+                 "Check missing values, correlation analysis (`cor()`, `ggcorr()`)", 
+                 "Use `stepAIC()` (forward selection) to select key predictors", 
+                 "Check significance (`summary()`), check multicollinearity (`vif()`)", 
+                 "Decide whether to keep/remove non-significant predictors (`hdlngth`)", 
+                 "Compute MSE, residual analysis, compare with alternative models"),
+  
+  Status = c( " Done", 
+              " Done but revisitiong", 
+              " Done (`belly`, `hdlngth` selected)", 
+              " Done (`vif < 5`, no multicollinearity)", 
+              " In progress", 
+              " Not done yet")
+)
+ptable_workflow <- flextable(pdf_workflow) |>
+  theme_box() |>  # Apply box theme for automatic borders
+  set_table_properties(layout = "fixed") |>  # Allow text to wrap
+  width(j = 1, width = 2) |>  # Step column (narrow)
+  width(j = 2, width = 3) |>  # Process column (text wraps naturally)
+  width(j = 3, width = 2) |>  # Status column (smallest)
+  bg(part = "header", bg = "#D3D3D3") |>  # Grey background for header row
+  bg(i = NULL, j = 1, bg = "#D3D3D3", part = "body") |>  # Grey background for first column
+  color(j = 3, color = "blue") |>  # Color status column text blue
+  bold(j = 1) |>  # Bold the "Step" column
+  align(j = 1, align = "left", part = "all") |>  # Left-align first column
+  fontsize(size = 9)  
+
+# status within the group
+ptable_workflow
+
+
+```
+
 
 
 ## Load Data
@@ -25,7 +72,7 @@ possums <- read.csv(unz(zip_path, "possums.csv"))
 
 ## EDA - Data Cleaning and  Initial Analysis
 
-```{r possums-EDA-start, include=T , eval=T}
+```{r possums-EDA-prep, include=T , eval=T}
 
 set.seed(82171165) 
 pskim   <- skim(possums) |> select(skim_variable, n_missing)
@@ -35,19 +82,25 @@ summary(possums)
   
 ```
 
-```{r possum-clean-age}
-
+```{r possum-exploratory-data-analysis}
+# possums_0 is the working copy of possums
+# for age, we will drop na, remove outliers
+# we will drop case - as this is just a numeric row index
+# we will drop Pop - it is redundant as we have site. 
+#
 possums_0 <- possums |> drop_na(age)   # drop missing age       
 possums_0 <- remove_outliers(possums_0,"age")
+possums_0 <- subset(possums_0, select = -c(case, Pop))
+names(possums_0)
 # visualise age 
 ggplot(possums_0, aes(x = age)) +
   geom_histogram(binwidth = 1, fill = "blue", color = "black") +
-  ggtitle("Possum Ages Distribution") +
+  ggtitle("Possum Ages Distribution (without NA and outliers)") +
   theme_minimal()
 
 ```
 
-```{r get-yaml-params, include=T}
+```{r get-yaml-params, include=F, eval=F}
 
 # Access pthreshold from YAML params
 pthreshold   <- NULL                                            # reset
@@ -63,33 +116,44 @@ cat("pthreshold: ", pthreshold)
 
 ```
 
-```{r select-possum-participants}
+```{r select-potential-possum-participants, include=F, eval=F}
 
+# a correlation will determine a first pass of the relevant variables to be used
+# possums_2 puts age as the last variable to visualise the correlation easily. 
+#
 possums_2    <- possums_0 |> relocate(age, .after = last_col()) # age is last for ease of analysis 
- 
-pnumerics    <- possums_2 |> select(where(is.numeric))          # only use numeric columns
-pmatrix      <- cor(pnumerics, use = "complete.obs")            # compute correlation matrix
-ppredictors  <- pmatrix["age", ]                                # matrix values relative to age 
-ggcorr(pnumerics, label = TRUE)                                 # visualise correlation matrix 
 
+# pnumerics has only the numeric columns for the coorelation.  
+# pmatrix   is a correlation matrix
+#
+pnumerics_2  <- possums_2 |> select(where(is.numeric))          # only use numeric columns
+pmatrix      <- cor(pnumerics_2, use = "complete.obs")          # compute 
+
+# ppredictors is a list of the correlation values relative to age. 
+# ppnames     is a list of the names of the predictors. These predictors have 
+#             still have outliers and na values but this is the first pass.
+#             rather than remove all outliers/na for all columns, lets see
+#             what this results in. We will take these names and clear only
+#             these columns and do a second cor() with the columns cleaned up
+#             and see how the correlation looks visually to confirm our choices
+#
+ppredictors  <- pmatrix["age", ]                                # matrix values relative to age 
 pfilter      <- abs(ppredictors) >= pthreshold & names(ppredictors) != "age"  #bool list of participants 
 ppnames      <- names(ppredictors[pfilter])                     # named list of participants.  
-possums_3    <- possums_2                                       # copy for cleanup the participant columns
+
+# possum_2 is now to have the cols cleaned up 
+#
 for (col in ppnames) {                                          # cleanup outliers and na
-  possums_3  <- possums_3 |> drop_na(col)                        # drop na rows of participants
-  if (is.numeric(possums_3[[col]])) {
-      possums_3 <- remove_outliers(possums_3, col)              # remove outliers for participants
+  possums_2  <- possums_2 |> drop_na(col)                        # drop na rows of participants
+  if (is.numeric(possums_2[[col]])) {
+      possums_2 <- remove_outliers(possums_2, col)              # remove outliers for participants
     }
  }
-possums_3 <- possums_3 |> mutate(female = ifelse(sex == "f", 1, 0))
-
-if (length(ppnames) == 0) {
-  pformula <- as.formula("age ~ 1")                           # default formula : intercept-only 
-} else {
-  pformula <- as.formula(paste("age ~", paste(ppnames, collapse=" + ")))   
-}
+possums_3   <- possums_2 |> mutate(female = ifelse(sex == "f", 1, 0))
+pnumerics_3 <- possums_2 |> select(where(is.numeric))          # only use numeric columns
 
 
+ggcorr(pnumerics_3, label = TRUE)                                 # visualise correlation matrix 
 ```
 
 
@@ -97,17 +161,20 @@ if (length(ppnames) == 0) {
 
 
 
-```{r possum-lm-analysis, include=T}
+```{r possum-lm-analysis, include=F, eval=F}
 
-plinear_m2 <- lm(pformula, data = possums_2)
-plinear_m3 <- lm(pformula, data = possums_3)
 
-summary(plinear_m2)   # with    outliers
-summary(plinear_m3)   # without outliers
+plm_null  <- lm(age ~ 1, data = possums_0)  # No predictors only intercept
+plm_full  <- lm(age ~ ., data = possums_0)  # All available predictor
+pstepwise <- stepAIC(plm_null, 
+                          scope = list(lower = plm_null, upper = plm_full), 
+                          direction = "forward", 
+                          trace = TRUE)  # Shows step-by-step selection
 
-par(mfrow = c(2, 4))  # Arrange plots in 2x4 grid
-plot(plinear_m2)
-plot(plinear_m3)
+summary(pstepwise)
+vif(pstepwise)
+
+
 
 ```
 ## Feature Selection and Model Training

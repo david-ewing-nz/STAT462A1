@@ -39,7 +39,7 @@ options(repos = c(CRAN = "https://cran.stat.auckland.ac.nz/"))
 
 # Required packages
 required_packages <- c("conflicted", "ggplot2", "dplyr", "class", "tidyverse",
-                       "flextable", "skimr", "GGally")
+                       "flextable", "skimr", "GGally", "MASS", "car")
 
 # Install and load missing packages in a single step and quietly
 for (pkg in required_packages) {
