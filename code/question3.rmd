@@ -170,7 +170,7 @@ vif(pstepwise_2)
 
 ```
  
-```{r possum-step-analysis-3, include=F, eval=F}
+```{r possum-step-analysis-3, include=T, eval=T}
  
 ggcorr(pnumerics_3, label = TRUE)                                 # visualise correlation matrix 
 plm_null_3  <- lm(age ~ 1, data = pnumerics_3)  # No predictors only intercept
@@ -200,5 +200,6 @@ vif(pstepwise_3)
 ## Further Exploration
 
 ```{r}
-# Additional analysis or research questions
+# Additional analysis or research questions 
+#[204]
 ```
