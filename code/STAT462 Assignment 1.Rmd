@@ -46,8 +46,9 @@ header-includes:
 options(repos = c(CRAN = "https://cran.stat.auckland.ac.nz/"))
 
 # Required packages
-required_packages <- c("conflicted", "ggplot2", "dplyr", "class", "tidyverse",
-                       "flextable", "skimr", "GGally","formatR")
+required_packages <- c("conflicted", "ggplot2", "dplyr", "class",  
+                       "tidyverse", "flextable", "skimr", "GGally",
+                       "MASS", "car", "formatR")
 
 # Install and load missing packages in a single step and quietly
 for (pkg in required_packages) {
@@ -128,7 +129,7 @@ remove_outliers_IQR <- function(df, col, multiplier = 5, upper_cap = Inf) {
 # Braking Distance
 
 
-```{r, child="../code/question1.Rmd", eval=F}
+```{r, child="../code/question1.Rmd", eval=T}
 ```
 
 
@@ -137,12 +138,12 @@ remove_outliers_IQR <- function(df, col, multiplier = 5, upper_cap = Inf) {
 
 
 
-```{r, child="../code/question2.Rmd", eval=TRUE}
+```{r, child="../code/question2.Rmd", eval=T}
 ```
 
 
 # Predicting Possum Age
 
 
-```{r load-question3, child="../code/question3.Rmd", eval=F}
+```{r load-question3, child="../code/question3.Rmd", eval=T}
 ```
