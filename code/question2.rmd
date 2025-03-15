@@ -1,39 +1,67 @@
----
-title: "Filipino household income"
-author: "Xia Yu (62380486)"
-date: "`r Sys.Date()`"
-output: pdf_document
----
-
-## Data Preparation
+## Load Data
 
 ```{r load-income, include=FALSE, eval=T,echo=FALSE}
 # Loads the income.csv dataset from a zipped file located at zip_path
 zip_path <- "../data/datasets.zip"
 if (file.exists(zip_path)) {
-income_dataset <- read.csv(unz(zip_path, "income.csv"))
+income_dateset <- read.csv(unz(zip_path, "income.csv"))
 } else {
   stop("The zip file does not exist at the given path.")
 }
 
-# Extracts two specific columns (Total.Household.Income and Members.with.age.5...17.years.old) from the dataset and renames them to income and children, respectively.
-income <- income_dataset$Total.Household.Income
-children <- income_dataset$Members.with.age.5...17.years.old
 ```
 
-### Data Validation And Statistics Summary
+## EDA - Data Cleaning and Initial Analysis
 
-```{r summary statistics and missing value checking, include=TRUE, eval=T}
-# Print the summary statistics for the income and children variables
-skimp   <- data.frame(income, children)|>skim()
-print(skimp)
+```{r income-EDA-start, include=T , eval=T}
+# Set a seed for reproducibility and to minimize RAM usage
+set.seed(62380486) 
+
+# Select and rename data from dataset as income_0, which contains income, children
+df_income <- income_dateset %>% select(Total.Household.Income,Members.with.age.5...17.years.old) %>% 
+rename(income = Total.Household.Income, children = Members.with.age.5...17.years.old)
+
+# Summarize income_0 
+xskim   <- skim(df_income) |> select(skim_variable, n_missing)
+print(xskim)                           
+summary(xskim)
+
 ```
 
-### Initial Scatter Plot Data Exploration
+```{r Scatter exploration, include=T , eval=T}
+# Drop missing income  
+income_0 <- df_income |> drop_na(income) # income_0 is data with outliers
 
-```{r Scatter plot, include=TRUE, eval=T,echo=FALSE}
-# Scatter plot of income vs. children
-plot(children, income/10000, xlab = "Number of Children", ylab = "Household Income (in 10 Thousands)", main = "Household Income Distribution Based on Number of Children")
+# Outliers Removal using IQR method (5xIQR, upper limit 4000000)
+income_1 <- remove_outliers_IQR(df=income_0, col="income", multiplier = 5, upper_cap = 2000000) 
+
+# Identify removed outliers
+removed_rows <- setdiff(income_0, income_1)  # Gets the removed outlier
+
+# Calculate the number and proportion of outliers
+num_outliers <- nrow(removed_rows)
+total_rows <- nrow(income_0)
+outlier_percentage <- (num_outliers / total_rows) * 100  # Calculated percentage
+outlier_text <- paste0("Removed: ", num_outliers, " outliers (", round(outlier_percentage, 2), "%)")
+
+# 绘制散点图，标记正常值（黑色）和异常值（红色）
+plot(income_0$income / 10000, income_0$children,
+     ylab = "Number of Children", 
+     xlab = "Household Income (in 10 Thousands)", 
+     main = "Household Income Distribution Based on Number of Children",
+     pch = 4, col = "black")  # 黑色 X 代表正常数据
+
+# 用红色标记异常值
+points(removed_rows$income / 10000, removed_rows$children,
+       pch = 4, col = "red")  # 红色 X 代表异常值
+
+# 在右上角添加异常值数量和占比的文本标注
+text(x = max(income_0$income / 10000) * 0.8, 
+     y = max(income_0$children) * 0.9, 
+     labels = outlier_text, 
+     col = "red", 
+     font = 2, 
+     cex = 1)  # 字体加粗，大小适中
 ```
 
 \newpage
@@ -43,25 +71,37 @@ plot(children, income/10000, xlab = "Number of Children", ylab = "Household Inco
 ### Training Set And Testing Set Preparation
 
 ```{r training-data-and-testing-data-setup, include=TRUE, eval=T}
-# Set a seed for reproducibility and to minimize RAM usage
-set.seed(888)
+# Function to split data into training and test sets
+split_data <- function(data, train_ratio = 0.8) {
+  # Randomly select the specified percentage of indices for the training set
+  train_ind <- sample(1:nrow(data), size = train_ratio * nrow(data))
+  
+  # Use the remaining indices for the test set
+  test_ind <- setdiff(1:nrow(data), train_ind)
+  
+  # Create training data using the selected indices
+  train_data <- data[train_ind, ]
+  
+  # Create test data using the remaining indices
+  test_data <- data[test_ind, ]
+  
+  # Return both training and test data as a list
+  return(list(train = train_data, test = test_data))
+}
 
-# Combine income and children into a data frame
-data <- data.frame(income = income, children = children)
+# Call the function with a 70% training set and 30% test set
+xsplit_data <- split_data(income_1, train_ratio = 0.8)
 
-# Split the data into training and test sets
-train_ind <- sample(1:nrow(data), size = 0.8 * nrow(data))  # Randomly select 80% of indices for training set
-test_ind <- setdiff(1:nrow(data), train_ind)  # Use remaining indices for test set
-
-train_data <- data[train_ind, ]  # Create training data
-test_data <- data[test_ind, ]    # Create test data
+# Access the training and testing sets
+xtrain_data <- xsplit_data$train
+xtest_data <- xsplit_data$test
 ```
 
 ### Model Training
 
 ```{r SLR model fiting, include=TRUE, eval=T}
 # fit a linear regression model
-model <- lm(income ~ children, data = train_data)
+model <- lm(income ~ children, data = xtrain_data)
 
 # print the summary of the model
 summary(model)
@@ -71,32 +111,39 @@ summary(model)
 
 ### Model Explanation
 
-3.a What is the specific form of the affine-linear model, i.e. what are b0 and b1?
+The specific form of this model is expressed as: $income =b_0 + b_1 \cdot children + \epsilon$
 
--   The general form of the affine-linear model is given by $\text{Y} = b_0 + b_1\cdot X$ , where $X$ represents the single feature, children, and the observed quantitative response $Y$ is income, with $b_0$ as the bias term.
+-   $b_0$ (intercept): Represents the predicted income when the number of children is zero.
 
--   The specific form of this model is expressed as: $income =b_0 + b_1 \cdot children$
+-   $b_1$ (slope): Indicates the change in income for each additional child.
 
-    -   $b_0$ (intercept): Represents the predicted income when the number of children is zero. In this model, $b_0 = 262735$.
+-   $\epsilon$ (a mean-zero random error term): “The error term is a catch-all for what we miss with this simple model: the true relationship is probably not linear, there may be other variables that cause variation in Y( here Y means $income$ ) , and there may be measurement error. We typically assume that the error term is independent of X(here X means $children$ ).” (James et al., 2021, p. 63)
 
-    -   $b_1$ (slope): Indicates the change in income for each additional child. In this model, $b_1 = −11256$.
+-   Each computed on the basis of a separate random set of observations, is different. (James et al., 2021, p. 64) With different seed number, which was set as $62380486$ at very beginning, the $b_0$ and $b_1$ vary within a intervals.
 
-    -   Thus, the model can be expressed as: $\text{income} = 262735 −11256 \cdot \text{children}$
-
-3.b.1 What is the predicted mean income of a household with $𝑛$ children, for $n \in \{0,1,…,8\}$ ?
-
-```{r train_pred, include=TRUE,eval=T}
-# Define variables
-n <- 0:8  # n is defined as a vector
+```{r print b0 and b1}
 # coefficients
-b_0 <- coef(model)[1]  # b_0 represents intercept
-b_1 <- coef(model)[2]  # b_1 represents slope
-# predicted mean income of a household with n children
-train_pred <- b_0 + b_1 * n # the predicted mean income
-print(train_pred)
+
+# b_0 intercept
+b_0 <- coef(model)[1]  
+# b_1 slope
+b_1 <- coef(model)[2]  
+
+cat("b[0] = ", b_0, "\n", "b[1] = ", b_1)
 ```
 
-3.b.2 What are the associated 90% prediction intervals?
+The predicted mean income of a household with $𝑛$ children, for $n \in \{0,1,…,8\}$
+
+```{r xtrain_pred, include=TRUE,eval=T}
+# Define variables
+n <- 0:8  # n is defined as a vector
+
+# predicted mean income of a household with n children
+xtrain_pred <- b_0 + b_1 * n 
+# print(xtrain_pred)
+```
+
+The associated 90% prediction intervals caculation
 
 $\text{Residual Standard Error (RSE)}$
 
@@ -110,7 +157,7 @@ $\text{upper bound} = \hat{y}+\tau$
 
 ```{r prediction intervals, include=TRUE,eval=T}
 # Compute true mean income for each n from train_data
-true_income_mean <- tapply(train_data$income, train_data$children, mean)
+true_income_mean <- tapply(income_1$income, income_1$children, mean)
 print(true_income_mean)
 
 # Get residual standard error from model summary
@@ -121,17 +168,17 @@ alpha <- 0.1
 t_crit <- qt(1 - alpha/2, df = summary(model)$df[2])  # Two-tailed t-value
 tau <- t_crit * residual_se
 # Compute the 90% prediction interval bounds
-lower_bound <- train_pred - tau
-upper_bound <- train_pred + tau
+lower_bound <- xtrain_pred - tau
+upper_bound <- xtrain_pred + tau
 ```
 
 ***3.b.3 Summarize all of above information in a table.***
 
 ```{r table, include=TRUE, eval=T, echo=FALSE}
 # Create a data frame
-test_results <- data.frame(
+xtest_results <- data.frame(
   n = n, 
-  train_pred,
+  xtrain_pred,
   true_income_mean,
   lower_90 = lower_bound, 
   upper_90 = upper_bound
@@ -144,11 +191,12 @@ set_flextable_defaults(
     theme_fun = theme_vanilla,
     padding = 6,
     background.color = "#EFEFEF")
-ft_test <- flextable(test_results) |>
+
+ft_test <- flextable(xtest_results) |>
   set_header_labels(
-    n = "n",
+    n = "Children",
     true_income_mean = "True Mean Income",
-    train_pred = "Predicted Mean Income",
+    xtrain_pred = "Predicted Mean Income",
     lower_90 = "Lower Bound (90% PI)",
     upper_90 = "Upper Bound (90% PI)"
   )|>
@@ -164,33 +212,34 @@ ft_test
 
 To check how many data points in the test set fall within the 90% prediction intervals, we need to:
 
-1\. Predict income for test_data`$`children using the model.
+1\. Predict income for xtest_data`$`children using the model.
 
 2\. Compute the 90% prediction interval for each prediction.
 
-3\. Count the number of test points where test_data`$`income falls inside the interval.
+3\. Count the number of test points where xtest_data`$`income falls inside the interval.
 
 4\. Calculate the percentage of test points that satisfy this condition.
 
-```{r}
+```{r }
 # Predict income for the test set
-test_pred <- predict(model, newdata = test_data, se.fit = TRUE, interval = "prediction", level = 0.90)
+xtest_pred <- predict(model, newdata = xtest_data, se.fit = TRUE, interval = "prediction", level = 0.90)
 
 # Extract the predicted values from the result of `predict()`, fit[,1]
-predicted_values <- test_pred$fit[, 1]  # The point predictions (mean of the prediction interval)
+xpredicted_values <- xtest_pred$fit[, 1]
 
 # Compute prediction interval bounds from fit[,2] and fit[,3]
-lower_bound_test <- test_pred$fit[,2]
-upper_bound_test <- test_pred$fit[,3]
+xlower_bound_test <- xtest_pred$fit[,2]
+xupper_bound_test <- xtest_pred$fit[,3]
 
 # Check if test set income values fall within the interval
-within_interval <- (test_data$income >= lower_bound_test) & (test_data$income <= upper_bound_test)
+xwithin_interval <- (xtest_data$income >= xlower_bound_test) & (xtest_data$income <= xupper_bound_test)
 
 # Calculate percentage of points within the interval
-percentage_within <- mean(within_interval) * 100 # When mean() is called on this logical vector, the TRUE value is treated as 1 and the FALSE value is treated as 0. mean() then returns a ratio of 1, i.e., how many data points have revenue within the forecast range.
+percentage_within <- mean(xwithin_interval) * 100 
 
-# Print result
+
+# Print xresult
 cat("Percentage of test points within the 90% prediction interval:", percentage_within, "%\n")
 ```
 
-***4. Do all steps of part 3. again, but this time you will be predicting log_income = log(income) instead of income.***
+4.  Do all steps of part 3. again, but this time you will be predicting log_income = log(income) instead of income.
