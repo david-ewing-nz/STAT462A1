@@ -102,7 +102,7 @@ ggplot(possums_0, aes(x = age)) +
 
 ```
 
-```{r get-yaml-params, include=F, eval=F}
+```{r get-yaml-params, include=F, eval=T}
 
 # Access pthreshold from YAML params
 pthreshold   <- NULL                                            # reset
@@ -118,7 +118,7 @@ cat("pthreshold: ", pthreshold)
 
 ```
 
-```{r select-potential-possum-participants, include=F, eval=F}
+```{r select-potential-possum-participants, include=T, eval=T}
 
 # a correlation will determine a first pass of the relevant variables to be used
 # possums_2 puts age as the last variable to visualise the correlation easily. 
@@ -154,31 +154,37 @@ for (col in ppnames) {                                          # cleanup outlie
 possums_3   <- possums_2 |> mutate(female = ifelse(sex == "f", 1, 0))
 pnumerics_3 <- possums_2 |> select(where(is.numeric))          # only use numeric columns
 
-
-ggcorr(pnumerics_3, label = TRUE)                                 # visualise correlation matrix 
 ```
+\newpage 
+```{r possum-step-analysis-2, include=T, eval=T}
 
-
-
-
-
-
-```{r possum-lm-analysis, include=F, eval=F}
-
-
-plm_null  <- lm(age ~ 1, data = possums_0)  # No predictors only intercept
-plm_full  <- lm(age ~ ., data = possums_0)  # All available predictor
-pstepwise <- stepAIC(plm_null, 
-                          scope = list(lower = plm_null, upper = plm_full), 
+ggcorr(pnumerics_2, label = TRUE)                                 # visualise correlation matrix
+plm_null_2  <- lm(age ~ 1, data = pnumerics_2)  # No predictors only intercept
+plm_full_2  <- lm(age ~ ., data = pnumerics_2)  # All available predictor
+pstepwise_2 <- stepAIC(plm_null_2, 
+                          scope = list(lower = plm_null_2, upper = plm_full_2), 
                           direction = "forward", 
                           trace = TRUE)  # Shows step-by-step selection
-
-summary(pstepwise)
-vif(pstepwise)
-
-
+summary(pstepwise_2)
+vif(pstepwise_2)
 
 ```
+ 
+```{r possum-step-analysis-3, include=F, eval=F}
+ 
+ggcorr(pnumerics_3, label = TRUE)                                 # visualise correlation matrix 
+plm_null_3  <- lm(age ~ 1, data = pnumerics_3)  # No predictors only intercept
+plm_full_3  <- lm(age ~ ., data = pnumerics_3)  # All available predictor
+pstepwise_3 <- stepAIC(plm_null_3, 
+                          scope = list(lower = plm_null_3, upper = plm_full_3), 
+                          direction = "forward", 
+                          trace = TRUE)  # Shows step-by-step selection
+summary(pstepwise_3)
+vif(pstepwise_3)
+
+```
+
+\newpage
 ## Feature Selection and Model Training
 
 
