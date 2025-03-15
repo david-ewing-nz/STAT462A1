@@ -44,18 +44,18 @@ total_rows <- nrow(income_0)
 outlier_percentage <- (num_outliers / total_rows) * 100  # Calculated percentage
 outlier_text <- paste0("Removed: ", num_outliers, " outliers (", round(outlier_percentage, 2), "%)")
 
-# 绘制散点图，标记正常值（黑色）和异常值（红色）
+# Scatter plot
 plot(income_0$income / 10000, income_0$children,
      ylab = "Number of Children", 
      xlab = "Household Income (in 10 Thousands)", 
      main = "Household Income Distribution Based on Number of Children",
-     pch = 4, col = "black")  # 黑色 X 代表正常数据
+     pch = 4, col = "black")  # black X are normals
 
-# 用红色标记异常值
+# outliers mark
 points(removed_rows$income / 10000, removed_rows$children,
-       pch = 4, col = "red")  # 红色 X 代表异常值
+       pch = 4, col = "red")  # red X are outliers
 
-# 在右上角添加异常值数量和占比的文本标注
+# outliers count and ratio text add
 text(x = max(income_0$income / 10000) * 0.8, 
      y = max(income_0$children) * 0.9, 
      labels = outlier_text, 
