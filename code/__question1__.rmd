@@ -1,8 +1,4 @@
-Please add an "e" on "Simon Clarke" and my Student ID:97211898 where the names are.
-
 # Braking Distance
-
-{r, child="../code/question1.Rmd", eval=F}
 
 ```{r eval = TRUE}
 #Libraries
@@ -14,8 +10,9 @@ library(readxl)
 
 ### 1.a. Load The Dataset (braking.csv)
 ```{r eval = TRUE}
-# to read a csv file from above folder
-bdata <- read.csv("braking.csv")
+# to read a csv file from STAT462 Assignment 1.Rmd
+# bdata <- read.csv("braking.csv")  # no longer required as braking data loaded in STAT462 Assignment 1.Rmd
+bdata <- braking
 
 ```
 
