@@ -124,6 +124,25 @@ remove_outliers_IQR <- function(df, col, multiplier = 5, upper_cap = Inf) {
   return(df_clean)
 }
 
+
+step_analysis <- function(lm) {      
+   
+  lm_name   <- deparse(substitute(lm))        # name
+  lm_form   <- formula(lm)                    # formula 
+  good_form <- length(all.vars(lm_form)) > 1  # bool : not just the intercept
+
+  if (good_form) {
+
+    print(summary(lm))
+    print(vif(lm))  
+    
+  } else {
+
+    cat(lm_name, ": The stepwise regression resulted in an intercept-only model (",
+        lm_form, ")\nmeaning none of the predictors were statistically significant.\n") 
+  }
+}
+
 ```
 
 # Braking Distance
