@@ -37,7 +37,7 @@ header-includes:
   - \RecustomVerbatimEnvironment{verbatim}{Verbatim}{xleftmargin=5mm}
 ---
 
-```{r setup, include=FALSE}
+```{r setup, include=T}
 # DEE: This chunk was set up with the aid of ChatGPT
 #      The intent is to load updates quietly thus not
 #      spending undue time with the logistics of getting 
@@ -48,7 +48,7 @@ options(repos = c(CRAN = "https://cran.stat.auckland.ac.nz/"))
 # Required packages
 required_packages <- c("conflicted", "ggplot2", "dplyr", "class",  
                        "tidyverse", "flextable", "skimr", "GGally",
-                       "MASS", "car", "formatR")
+                       "MASS", "car", "formatR", "mice")
 
 # Install and load missing packages in a single step and quietly
 for (pkg in required_packages) {
@@ -128,22 +128,15 @@ remove_outliers_IQR <- function(df, col, multiplier = 5, upper_cap = Inf) {
 
 # Braking Distance
 
-
 ```{r, child="../code/question1.Rmd", eval=T}
 ```
 
-
-
 # Filipino Household Income
-
-
 
 ```{r, child="../code/question2.Rmd", eval=T}
 ```
 
-
 # Predicting Possum Age
-
 
 ```{r load-question3, child="../code/question3.Rmd", eval=T}
 ```
