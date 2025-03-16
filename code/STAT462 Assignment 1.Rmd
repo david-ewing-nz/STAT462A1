@@ -124,22 +124,27 @@ remove_outliers_IQR <- function(df, col, multiplier = 5, upper_cap = Inf) {
   return(df_clean)
 }
 
+capture_name <- function(mdl) {
+  name <- deparse(substitute(mdl))
+  return(name)
+}
 
-step_analysis <- function(lm) {      
+step_analysis <- function(mdl) {      
    
-  lm_name   <- deparse(substitute(lm))        # name
-  lm_form   <- formula(lm)                    # formula 
+  lm_form   <- formula(mdl)                    # formula 
   good_form <- length(all.vars(lm_form)) > 1  # bool : not just the intercept
-
+  print(good_form)
+  print(lm_form)
+  
   if (good_form) {
 
-    print(summary(lm))
-    print(vif(lm))  
+    print(summary(mdl))
+    print(vif(mdl))  
     
   } else {
 
-    cat(lm_name, ": The stepwise regression resulted in an intercept-only model (",
-        lm_form, ")\nmeaning none of the predictors were statistically significant.\n") 
+    cat(" The stepwise regression resulted in an intercept-only model (",
+        deparse(lm_form), ")\nmeaning none of the predictors were statistically significant.\n") 
   }
 }
 
