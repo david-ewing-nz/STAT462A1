@@ -118,7 +118,7 @@ possums_2    <- possums_0 |> relocate(age, .after = last_col()) # age is last fo
 pnumerics_2  <- possums_2 |> select(where(is.numeric))          # only use numeric columns  
 ```
 
-```{r get-yaml-params, include=F, eval=F}
+```{r get-yaml-params, include=T, eval=T}
 
 # this is part of a process to determine an 
 # alternative that may not be necessary. 
@@ -137,7 +137,7 @@ cat("pthreshold: ", pthreshold)
 
 ```
 
-```{r select-alternative-possum-participants, include=F, eval=F}
+```{r select-alternative-possum-participants, include=T, eval=T}
 
 # pmatrix   is a correlation matrix
 #
@@ -173,6 +173,7 @@ pnumerics_3 <- possums_2 |> select(where(is.numeric))          # only use numeri
 #starting correlation pnumerics_2
 #
 ggcorr(pnumerics_2, label = TRUE)                                 # visualise correlation matrix
+ggcorr(pnumerics_3, label = TRUE)                                 # visualise correlation matrix
 
 ```
 
@@ -204,6 +205,37 @@ pstepwise_2both <- stepAIC(plm_null_2,
 step_analysis(pstepwise_2frwd)
 step_analysis(pstepwise_2bkwd)
 step_analysis(pstepwise_2both)
+
+```
+
+```{r possum-step-analysis-3, include=T, eval=T}
+
+# begining stepwise regression techniques to select a suitable predictive model.
+# Start with an intercept-only model and direction = "forward"
+#
+
+plm_null_3      <- lm(age ~ 1, data = pnumerics_3)  # No predictors only intercept
+plm_full_3      <- lm(age ~ ., data = pnumerics_3)  # All available predictor
+
+pstepwise_3frwd <- stepAIC(plm_null_3, 
+                          scope = list(lower = plm_null_3, upper = plm_full_3), 
+                          direction = "forward", 
+                          trace = TRUE)  # Shows step-by-step selection
+
+pstepwise_3bkwd <- stepAIC(plm_null_3, 
+                          scope = list(lower = plm_null_3, upper = plm_full_3), 
+                          direction = "backward", 
+                          trace = TRUE)  # Shows step-by-step selection
+
+pstepwise_3both <- stepAIC(plm_null_3, 
+                          scope = list(lower = plm_null_3, upper = plm_full_3), 
+                          direction = "both", 
+                          trace = TRUE)  # Shows step-by-step selection
+
+
+step_analysis(pstepwise_3frwd)
+step_analysis(pstepwise_3bkwd)
+step_analysis(pstepwise_3both)
 
 ```
 
@@ -245,20 +277,7 @@ abline(a = 0, b = 1, col = "red", lwd = 2)  # reference line
 par(mfrow = c(2, 2))
 plot(pstepwise_2)
 ```
- 
-```{r possum-step-analysis-3, include=F, eval=F}
- 
-ggcorr(pnumerics_3, label = TRUE)                                 # visualise correlation matrix 
-plm_null_3  <- lm(age ~ 1, data = pnumerics_3)  # No predictors only intercept
-plm_full_3  <- lm(age ~ ., data = pnumerics_3)  # All available predictor
-pstepwise_3 <- stepAIC(plm_null_3, 
-                          scope = list(lower = plm_null_3, upper = plm_full_3), 
-                          direction = "forward", 
-                          trace = TRUE)  # Shows step-by-step selection
-summary(pstepwise_3)
-vif(pstepwise_3)
 
-```
 
 \newpage
 ## Feature Selection and Model Training

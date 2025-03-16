@@ -143,7 +143,7 @@ step_analysis <- function(mdl) {
     
   } else {
 
-    cat(" The stepwise regression resulted in an intercept-only model (",
+    cat("The stepwise regression resulted in an intercept-only model (",
         deparse(lm_form), ")\nmeaning none of the predictors were statistically significant.\n") 
   }
 }
