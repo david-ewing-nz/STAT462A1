@@ -81,20 +81,19 @@ pskim   <- skim(possums) |> select(skim_variable, n_missing)
 print(pskim)                           
 head(possums)    
 summary(possums)
-  
-```
 
-```{r possum-exploratory-data-analysis}
 # possums_0 is the working copy of possums
 # we will drop case - as this is just a numeric row index
 # we will drop Pop - it is redundant as we have site. 
 # we will remove outliers of age
+# we will relocate age to the last column for ease of analysis 
 # we will impute missing data rather than drop na due to the small number of rows
 #  and small number of missing values. 
 #
-possums_0 <- remove_outliers(possums,"age")           # remove outliers
-possums_0 <- subset(possums_0, select = -c(case, Pop))  # drop case and Pop
+possums_0 <- remove_outliers(possums,"age")                 # remove outliers
+possums_0 <- subset(possums_0, select = -c(case, Pop))      # drop case and Pop
 possums_0 <- mice(possums_0, m=1, method="mean") |> complete() # impute
+possums_0 <- possums_0 |> relocate(age, .after = last_col())   # age is last 
 names(possums_0)
 # visualise age 
 ggplot(possums_0, aes(x = age)) +
@@ -104,16 +103,38 @@ ggplot(possums_0, aes(x = age)) +
 
 ```
 
+```{r possum-data-splitting}
+
+# data-splitting is performed before cleaning predictors 
+# to simulate real-world events. 
+# 
+
+# possums_1 is the training possum data (with stratification for age)
+#
+pTrainIdx <- createDataPartition(possums_0$age, p = 0.8, list = FALSE)
+possums_1 <- possums_0[pTrainIdx, ]
+
+# pTestDf is the test possum data           (with stratification)
+# pValidateDf is the validation possum data (with stratification) 
+#
+pTempDf     <- possums_0[-pTrainIdx, ]  #not train
+pTestIdx    <- createDataPartition(pTempDf$age, p = 0.5, list = FALSE) 
+pTestDf     <- pTempDf[pTestIdx, ]   
+pValidateDf <- pTempDf[-pTestIdx, ]
+
+cat("\npossums_1:   ", nrow(possums_1), "\npTestDf:     ", nrow(pTestDf), "\nVpValidateDf: ", nrow(pValidateDf),"\n")
+
+```
 
 
-```{r select-expected-possum-participants, include=T, eval=T}
+```{r possum-EDA1, include=T, eval=T}
 
 # a correlation will determine a first pass of the relevant variables to be used
 # possums_2 puts age as the last variable to visualise the correlation easily. 
 #
 possums_2    <- possums_0 |> relocate(age, .after = last_col()) # age is last for ease of analysis 
 
-# pnumerics has only the numeric columns for the coorelation.
+# pnumerics_2 has only the numeric columns for the coorelation.
 #
 pnumerics_2  <- possums_2 |> select(where(is.numeric))          # only use numeric columns  
 ```
@@ -152,12 +173,14 @@ pmatrix      <- cor(pnumerics_2, use = "complete.obs")          # compute
 #             and see how the correlation looks visually to confirm our choices
 #
 ppredictors  <- pmatrix["age", ]                                # matrix values relative to age 
-pfilter      <- abs(ppredictors) >= pthreshold & names(ppredictors) != "age"  #bool list of participants 
-ppnames      <- names(ppredictors[pfilter])                     # named list of participants.  
+pfilter1       <- names(ppredictors) != "age"
+pfilter2      <- abs(ppredictors) >= pthreshold & names(ppredictors) != "age"  #bool list of participants 
+pnnames      <- names(ppredictors[pfilter1])                     # named list of participants.  
+pfnames      <- names(ppredictors[pfilter2])                     # named list of participants.  
 
 # possum_2 is now to have the cols cleaned up 
 #
-for (col in ppnames) {                                          # cleanup outliers and na
+for (col in pfnames) {                                          # cleanup outliers and na
   possums_2  <- possums_2 |> drop_na(all_of(col))               # drop na rows of participants
   if (is.numeric(possums_2[[col]])) {
       possums_2 <- remove_outliers(possums_2, col)              # remove outliers for participants
@@ -168,10 +191,33 @@ pnumerics_3 <- possums_2 |> select(where(is.numeric))          # only use numeri
 
 ```
 \newpage 
-```{r possum-step-analysis-2-graphic, include=T, eval=T}
+```{r possum-scatterplots for age vs. predictors,, include=T, eval=T}
 
+ # scatterplots for each predictor
+ # yes aes_string() has been deprecated but necessary here
+#
+# Create an empty list to store plots
+plot_list <- list()
+
+# Generate scatterplots and store them in the list
+for (pre in pnnames) {
+  p <- ggplot(possums_0, aes_string(x = pre, y = "age")) + #get col by name
+        geom_point(alpha = 0.6) +
+        geom_smooth(method = "lm", color = "blue", se = FALSE) +
+        labs(title = paste("Scatterplot: Age vs", pre),
+             x = pre,
+             y = "Age") +
+        theme_minimal()
+  
+  plot_list <- append(plot_list, list(p))  # Append each plot to the list
+}
+
+# Arrange the plots in a 2-row, 3-column layout
+do.call(grid.arrange, c(plot_list, nrow = 4, ncol = 3))
 #starting correlation pnumerics_2
 #
+```
+```{r}
 ggcorr(pnumerics_2, label = TRUE)                                 # visualise correlation matrix
 ggcorr(pnumerics_3, label = TRUE)                                 # visualise correlation matrix
 

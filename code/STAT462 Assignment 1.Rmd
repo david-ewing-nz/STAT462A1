@@ -48,7 +48,8 @@ options(repos = c(CRAN = "https://cran.stat.auckland.ac.nz/"))
 # Required packages
 required_packages <- c("conflicted", "ggplot2", "dplyr", "class",  
                        "tidyverse", "flextable", "skimr", "GGally",
-                       "MASS", "car", "formatR", "mice","tinytex")
+                       "MASS", "car", "formatR", "mice","tinytex" ,
+                       "caret", "gridExtra")
 
 # Install and load missing packages in a single step and quietly
 for (pkg in required_packages) {
@@ -152,12 +153,10 @@ step_analysis <- function(mdl) {
 
 # Braking Distance
 
-```{r, child="../code/question1.Rmd", eval=T}
 ```
 
 # Filipino Household Income
 
-```{r, child="../code/question2.Rmd", eval=T}
 ```
 
 # Predicting Possum Age
