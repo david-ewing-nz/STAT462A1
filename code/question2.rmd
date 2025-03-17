@@ -201,9 +201,7 @@ xmodel_2 is trained by income_2.
 ```{r train models with outliers and without outliers, include=T,eval=T,echo=T}
 xmodel_0 <- fit_model(data=income_0, response = "income", predictor = "children", train_ratio = 0.8)
 
-
 xmodel_1 <- fit_model(data=income_1, response = "income", predictor = "children", train_ratio = 0.8)
-
 
 xmodel_2 <- fit_model(data=income_2,response = "income", predictor = "children", train_ratio = 0.8)
 
@@ -308,7 +306,7 @@ The specific form of this model is expressed as: $income = b_0 + b_1 \cdot child
 
 -   For clear, we present the estimated coefficients $\hat{b}_0$ and $\hat{b}_1$ from xmodel_0 (with outliers), xmodel_1 (without outliers) and xmodel_2 (log(income)).
 
-```{r print b0 and b1}
+```{r print b0 and b1, include=T,eval=T,echo=T}
 b0_0 <- coef(xmodel_0$model)[1]  
 b1_0 <- coef(xmodel_0$model)[2] 
 cat(paste0("Model name : xmodel_0 \n b0 = ", b0_0, ", b1 = ", b1_0, "\n"))
@@ -385,7 +383,7 @@ confidence_interval_b1 <- function(y, x, b1_hat, alpha=0.05) {
 
 ```
 
-```{r Prediction Intervals for b1_hat of Models, include=TRUE,eval=T}
+```{r Prediction Intervals for b1_hat of Models, include=TRUE,eval=T,echo=F}
 results <- data.frame(
   Model = c("xmodel_0", "xmodel_1", "xmodel_2"),
   Lower_Bound = c(
@@ -405,7 +403,7 @@ knitr::kable(results, caption = "Prediction Intervals for b1 of Models")
 
 ```
 
-```{r Display each results table,include=TRUE,eval=TRUE}
+```{r Display each results table,include=TRUE,eval=T,echo=F}
 # Create a results data frame for each model
 results_0 <- data.frame(
   n = n,
@@ -437,16 +435,16 @@ results_2 <- data.frame(
   row.names = NULL  # Set row names to NULL to avoid warnings
 )
 
+```
+
+```{r Display each results table,include=T,echo=T,eval=T}
 # Display each results table
 knitr::kable(results_0, caption = "Prediction Intervals and Predicted Income for xmodel_0")
 knitr::kable(results_1, caption = "Prediction Intervals and Predicted Income for xmodel_1")
 knitr::kable(results_2, caption = "Prediction Intervals and Predicted Income for xmodel_2")
-
 ```
 
 #### 4.4 Check How Many Percent Of Datapoints Lie Within The 90% Prediction Intervals By Test Dataset
-
-$\hat{income}=\hat{b}_0+\hat{b}_1 \cdot children$
 
 ```{r checkout_interval, include=TRUE, eval=F}
 checkout_interval <- function(model,alpha=0.05){
@@ -477,41 +475,4 @@ checkout_interval <- function(model,alpha=0.05){
 }
 
 checkout_interval(model = xmodel_0$model,alpha = 0.1)
-
-
-```
-
-```{r plot trained model, include=TRUE,eval=F}
-# Plot both models' fitted lines on income_0 data
-ggplot(income_0, aes(x = children, y = income)) +
-  geom_point(color = "gray60", alpha = 0.5) +  # All points
-  
-  # xmodel_0 line
-  geom_abline(
-    intercept = coef(xmodel_0$model)[1], 
-    slope = coef(xmodel_0$model)[2],
-    color = "blue", size = 1, linetype = "dashed"
-  ) +
-  
-  # xmodel_1 line
-  geom_abline(
-    intercept = coef(xmodel_1$model)[1], 
-    slope = coef(xmodel_1$model)[2],
-    color = "red", size = 1
-  ) +
-  
-  labs(
-    title = "Comparison of Linear Models: With and Without Outliers",
-    x = "Number of Children",
-    y = "Income"
-  ) +
-  theme_minimal() +
-  theme(
-    plot.title = element_text(hjust = 0.5, face = "bold"),
-    text = element_text(size = 12)
-  ) +
-  annotate("text", x = max(income_0$children) * 0.7, y = max(income_0$income) * 0.9,
-           label = paste0("R² (with outliers) = ", round(r_squared_0, 3), "\n",
-                          "R² (without outliers) = ", round(r_squared_1, 3)),
-           hjust = 0, color = "black", size = 4)
 ```

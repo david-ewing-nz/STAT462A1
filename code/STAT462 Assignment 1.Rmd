@@ -38,7 +38,7 @@ header-includes:
   - \RecustomVerbatimEnvironment{verbatim}{Verbatim}{xleftmargin=5mm}
 ---
 
-```{r setup, include=FALSE}
+```{r setup, include=T}
 # DEE: This chunk was set up with the aid of ChatGPT
 #      The intent is to load updates quietly thus not
 #      spending undue time with the logistics of getting 
@@ -49,7 +49,8 @@ options(repos = c(CRAN = "https://cran.stat.auckland.ac.nz/"))
 # Required packages
 required_packages <- c("conflicted", "ggplot2", "dplyr", "class",  
                        "tidyverse", "flextable", "skimr", "GGally",
-                       "MASS", "car", "formatR")
+                       "MASS", "car", "formatR", "mice","tinytex" ,
+                       "caret", "gridExtra")
 
 # Install and load missing packages in a single step and quietly
 for (pkg in required_packages) {
@@ -109,60 +110,48 @@ remove_outliers <- function(df, col) {
   return(df)
 }
 
-remove_outliers_IQR <- function(df, col, multiplier = 5, upper_cap = Inf) {        
-  # Calculate IQR (Quartile distance)
-  Q1 <- quantile(df[[col]], 0.25, na.rm = TRUE)  # The first quartile
-  Q3 <- quantile(df[[col]], 0.75, na.rm = TRUE)  # The third quartile
-  IQR_value <- Q3 - Q1  # IQR value
-  
-  # set lower_bound and upper_bound, upper_cap can be manually set
-  lower_bound <- Q1 - multiplier * IQR_value  
-  upper_bound <- min(Q3 + multiplier * IQR_value, upper_cap)  # upper_cap can be set manually
-  # print(upper_bound)
-  # filter ouliers
-  df_clean <- df |> filter(df[[col]] >= lower_bound & df[[col]] <= upper_bound)
-  
-  return(df_clean)
+capture_name <- function(mdl) {
+  name <- deparse(substitute(mdl))
+  return(name)
 }
 
+step_analysis <- function(mdl) {      
+   
+  lm_form   <- formula(mdl)                    # formula 
+  good_form <- length(all.vars(lm_form)) > 1  # bool : not just the intercept
+  print(good_form)
+  print(lm_form)
+  
+  if (good_form) {
 
-# Function to split data into training and test sets
-split_data <- function(data, train_ratio = 0.8) {
-  # Randomly select the specified percentage of indices for the training set
-  train_ind <- sample(1:nrow(data), size = train_ratio * nrow(data))
-  
-  # Use the remaining indices for the test set
-  test_ind <- setdiff(1:nrow(data), train_ind)
-  
-  # Create training data using the selected indices
-  train_data <- data[train_ind, ]
-  
-  # Create test data using the remaining indices
-  test_data <- data[test_ind, ]
-  
-  # Return both training and test data as a list
-  return(list(train = train_data, test = test_data))
+    print(summary(mdl))
+    print(vif(mdl))  
+    
+  } else {
+
+    cat("The stepwise regression resulted in an intercept-only model (",
+        deparse(lm_form), ")\nmeaning none of the predictors were statistically significant.\n") 
+  }
 }
+
 ```
 
 # Braking Distance
 
 
+
 ```{r, child="../code/question1.Rmd", eval=F}
 ```
 
-
-
 # Filipino Household Income
 
-
-
-```{r, child="../code/question2.Rmd", eval=T}
+```{r, child="../code/question2.Rmd", eval=F}
 ```
-
 
 # Predicting Possum Age
 
 
 ```{r load-question3, child="../code/question3.Rmd", eval=F}
+=======
+```{r load-question3, child="../code/question3.Rmd", eval=T}
 ```
