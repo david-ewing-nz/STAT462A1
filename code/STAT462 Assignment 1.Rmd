@@ -4,31 +4,8 @@ author:
  -  Simon Clark (97211898) 
  -  David Ewing (82171165)  
  -  Xia Yu (62380486) 
-date: "`r Sys.Date()`"
 
-#User parameters
-params:
-  pthreshold: 0.25  # DEE: For question 3, This value is a threshould for the 
-                    # coorelation matrix used in question 3 to determine which 
-                    # variables are to participate in the model.  
-                    #
-                    # A correlation value greater than 'pthreshold' is required
-                    # to participate in the model. 
-                    #
-                    # It is assumed that the .Rmd file will be re-run on a 
-                    # simi-regular basis by a user group as new data becomes
-                    # available. As such, the potential is that the correlation 
-                    # associated with variables is subject to change and the 
-                    # threshold to participate may change. 
-                    #
-                    # 'pthreshold' is made visible here in the yaml code such 
-                    # that the user does not have to dive into the code to make  
-                    # adhoc changes when re-knitting this file for new data.   
-# output:
-#   pdf_document:
-#     latex_engine: xelatex
-    
-
+date: "`r format(Sys.time(), '%Y-%m-%d %H:%M')`"
 output: 
   pdf_document:
     latex_engine: xelatex
@@ -37,7 +14,7 @@ header-includes:
   - \RecustomVerbatimEnvironment{verbatim}{Verbatim}{xleftmargin=5mm}
 ---
 
-```{r setup, include=T}
+```{r setup, include=F}
 # DEE: This chunk was set up with the aid of ChatGPT
 #      The intent is to load updates quietly thus not
 #      spending undue time with the logistics of getting 
@@ -101,6 +78,9 @@ file.exists("../code/question3.Rmd")
 ``` 
 
 ```{r common-functions, eval=T, include=F}
+
+# all functions have been created without the usage of ChatGPT
+#
 remove_outliers <- function(df, col) {        
   outliers <- boxplot.stats(df[[col]])$out  #  outliers for col
   if (length(outliers) > 0) {               #  remove if outliers 
@@ -119,7 +99,7 @@ remove_outliers_IQR <- function(df, col, multiplier = 5, upper_cap = Inf) {
   lower_bound <- Q1 - multiplier * IQR_value  
   upper_bound <- min(Q3 + multiplier * IQR_value, upper_cap)  # upper_cap can be set manually
   # print(upper_bound)
-  # filter ouliers
+  # filter outliers
   df_clean <- df |> filter(df[[col]] >= lower_bound & df[[col]] <= upper_bound)
   
   return(df_clean)
@@ -153,12 +133,12 @@ step_analysis <- function(mdl) {
 
 # Braking Distance
 
-```{r, child="../code/question1.Rmd", eval=F}
+```{r, child="../code/question1.Rmd", eval=T}
 ```
 
 # Filipino Household Income
 
-```{r, child="../code/question2.Rmd", eval=F}
+```{r, child="../code/question2.Rmd", eval=T}
 ```
 
 # Predicting Possum Age
