@@ -153,10 +153,12 @@ step_analysis <- function(mdl) {
 
 # Braking Distance
 
+```{r, child="../code/question1.Rmd", eval=F}
 ```
 
 # Filipino Household Income
 
+```{r, child="../code/question2.Rmd", eval=F}
 ```
 
 # Predicting Possum Age
