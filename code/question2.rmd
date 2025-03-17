@@ -383,7 +383,7 @@ confidence_interval_b1 <- function(y, x, b1_hat, alpha=0.05) {
 
 ```
 
-```{r Prediction Intervals for b1_hat of Models, include=TRUE,eval=T,echo=F}
+```{r Prediction Intervals for b1_hat of Models, include=TRUE,eval=T,echo=T}
 results <- data.frame(
   Model = c("xmodel_0", "xmodel_1", "xmodel_2"),
   Lower_Bound = c(
@@ -403,7 +403,7 @@ knitr::kable(results, caption = "Prediction Intervals for b1 of Models")
 
 ```
 
-```{r Display-each-results-table,include=TRUE,eval=T,echo=F}
+```{r Display-each-results-table,include=TRUE,eval=T,echo=T}
 # Create a results data frame for each model
 results_0 <- data.frame(
   n = n,
@@ -446,7 +446,7 @@ knitr::kable(results_2, caption = "Prediction Intervals and Predicted Income for
 
 #### 4.4 Check How Many Percent Of Datapoints Lie Within The 90% Prediction Intervals By Test Dataset
 
-```{r checkout_interval, include=TRUE, eval=F}
+```{r checkout_interval, include=TRUE, eval=T}
 checkout_interval <- function(model,alpha=0.05){
   b0_hat <- coef(model$model)[1]
   b1_hat <- coef(model$model)[2] 
