@@ -82,7 +82,7 @@ income_2 <- data.frame(
 
 ### 2.3 Visualization of 3 dataset
 
-```{r visualization EDA-outliers, include=T, eval=T,echo=F}
+```{r visualization-EDA-outliers, include=T, eval=T,echo=F}
 # Identify removed outliers
 removed_rows <- setdiff(income_0, income_1)  # Gets the removed outlier
 
@@ -118,7 +118,7 @@ text(y = max(income_0$income / 1000000) * 0.8,
 
 It can be seen from the figure that the outliers appear to be much more numerous than they actually are.
 
-```{r visualization EDA-log(income), include=T,eval=T,echo=F}
+```{r visualization-EDA-log(income), include=T,eval=T,echo=F}
 # plot scatter
 plot(y=income_2$income, x=income_2$children,
      xlab = "Number of Children", 
@@ -167,7 +167,7 @@ split_data <- function(data, train_ratio = 0.8) {
 
 ### 3.2 Model Training Function Set-Up
 
-```{r Train a Model with the parameterized dataset,include=T, eval=T}
+```{r Train-a-Model-with-the-parameterized-dataset,include=T, eval=T}
 # Function to split data and fit linear regression
 fit_model <- function(data, response, predictor, train_ratio = 0.8) {
   # Split data by function split_data
@@ -198,7 +198,7 @@ xmodel_1 is trained by income_1.
 
 xmodel_2 is trained by income_2.
 
-```{r train models with outliers and without outliers, include=T,eval=T,echo=T}
+```{r train-models-with-outliers-and-without-outliers, include=T,eval=T,echo=T}
 xmodel_0 <- fit_model(data=income_0, response = "income", predictor = "children", train_ratio = 0.8)
 
 xmodel_1 <- fit_model(data=income_1, response = "income", predictor = "children", train_ratio = 0.8)
@@ -306,7 +306,7 @@ The specific form of this model is expressed as: $income = b_0 + b_1 \cdot child
 
 -   For clear, we present the estimated coefficients $\hat{b}_0$ and $\hat{b}_1$ from xmodel_0 (with outliers), xmodel_1 (without outliers) and xmodel_2 (log(income)).
 
-```{r print b0 and b1, include=T,eval=T,echo=T}
+```{r print-b0-and-b1, include=T,eval=T,echo=T}
 b0_0 <- coef(xmodel_0$model)[1]  
 b1_0 <- coef(xmodel_0$model)[2] 
 cat(paste0("Model name : xmodel_0 \n b0 = ", b0_0, ", b1 = ", b1_0, "\n"))
@@ -403,7 +403,7 @@ knitr::kable(results, caption = "Prediction Intervals for b1 of Models")
 
 ```
 
-```{r Display each results table,include=TRUE,eval=T,echo=F}
+```{r Display-each-results-table,include=TRUE,eval=T,echo=F}
 # Create a results data frame for each model
 results_0 <- data.frame(
   n = n,
@@ -437,7 +437,7 @@ results_2 <- data.frame(
 
 ```
 
-```{r Display each results table,include=T,echo=T,eval=T}
+```{r knitr-table-,include=T,echo=T,eval=T}
 # Display each results table
 knitr::kable(results_0, caption = "Prediction Intervals and Predicted Income for xmodel_0")
 knitr::kable(results_1, caption = "Prediction Intervals and Predicted Income for xmodel_1")

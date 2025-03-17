@@ -63,7 +63,7 @@ file.exists("../code/question3.Rmd")
 
 # Load all Data 
 
-```{r load-dataset, eval=T, include=F}
+```{r load-dataset, eval=F, include=F}
 # Load and preprocess dataset
 # eval=TRUE, as agreed to on 20250313. 
   zip_path <- "../data/datasets.zip"
@@ -133,15 +133,15 @@ step_analysis <- function(mdl) {
 
 # Braking Distance
 
-```{r, child="../code/question1.Rmd", eval=F}
+```{r braking="../code/question1.Rmd", eval=F}
 ```
 
 # Filipino Household Income
 
-```{r, child="../code/question2.Rmd", eval=F}
+```{r child="../code/question2.Rmd", eval=T}
 ```
 
 # Predicting Possum Age
 
-```{r load-question3, child="../code/question3.Rmd", eval=T}
+```{r load-question3, child="../code/question3.Rmd", eval=F}
 ```
