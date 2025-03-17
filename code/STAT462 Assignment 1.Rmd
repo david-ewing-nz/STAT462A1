@@ -32,6 +32,7 @@ params:
 output: 
   pdf_document:
     latex_engine: xelatex
+    extra_dependencies: ["amsmath"]
 header-includes:
   - \usepackage{fancyvrb}
   - \RecustomVerbatimEnvironment{verbatim}{Verbatim}{xleftmargin=5mm}
@@ -124,12 +125,30 @@ remove_outliers_IQR <- function(df, col, multiplier = 5, upper_cap = Inf) {
   return(df_clean)
 }
 
+
+# Function to split data into training and test sets
+split_data <- function(data, train_ratio = 0.8) {
+  # Randomly select the specified percentage of indices for the training set
+  train_ind <- sample(1:nrow(data), size = train_ratio * nrow(data))
+  
+  # Use the remaining indices for the test set
+  test_ind <- setdiff(1:nrow(data), train_ind)
+  
+  # Create training data using the selected indices
+  train_data <- data[train_ind, ]
+  
+  # Create test data using the remaining indices
+  test_data <- data[test_ind, ]
+  
+  # Return both training and test data as a list
+  return(list(train = train_data, test = test_data))
+}
 ```
 
 # Braking Distance
 
 
-```{r, child="../code/question1.Rmd", eval=T}
+```{r, child="../code/question1.Rmd", eval=F}
 ```
 
 
@@ -145,5 +164,5 @@ remove_outliers_IQR <- function(df, col, multiplier = 5, upper_cap = Inf) {
 # Predicting Possum Age
 
 
-```{r load-question3, child="../code/question3.Rmd", eval=T}
+```{r load-question3, child="../code/question3.Rmd", eval=F}
 ```
