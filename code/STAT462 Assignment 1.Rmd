@@ -133,7 +133,7 @@ step_analysis <- function(mdl) {
 # Braking Distance
 
 
-```{r, child="../code/question1.Rmd", eval=T}
+```{r load-question2,child="../code/question1.Rmd", eval=T}
 ```
 
 # Filipino Household Income
