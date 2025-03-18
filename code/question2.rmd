@@ -1,35 +1,8 @@
----
----
----
-
 ## 1. Load Data
 
-```{r set-up for only run in question2.rmd, include=F,eval=TRUE,echo=FALSE}
-library(dplyr)
-library(skimr)
-library(tidyverse)
-library(ggplot2)
-library(flextable)
-
-remove_outliers_IQR <- function(df, col, multiplier = 5, upper_cap = Inf) {        
-  # Calculate IQR (Quartile distance)
-  Q1 <- quantile(df[[col]], 0.25, na.rm = TRUE)  # The first quartile
-  Q3 <- quantile(df[[col]], 0.75, na.rm = TRUE)  # The third quartile
-  IQR_value <- Q3 - Q1  # IQR value
-  
-  # set lower_bound and upper_bound, upper_cap can be manually set
-  lower_bound <- Q1 - multiplier * IQR_value  
-  upper_bound <- min(Q3 + multiplier * IQR_value, upper_cap)  # upper_cap can be set manually
-  # print(upper_bound)
-  # filter ouliers
-  df_clean <- df |> filter(df[[col]] >= lower_bound & df[[col]] <= upper_bound)
-  
-  return(df_clean)
-}
-```
-
-```{r load-income, include=T, eval=T,echo=T}
+```{r load-income, include=F, eval=F,echo=F}
 # Loads the income.csv dataset from a zipped file located at zip_path
+# Load data from STAT462 Assignment 1.Rmd Common func
 zip_path <- "../data/datasets.zip"
 if (file.exists(zip_path)) {
 income_dateset <- read.csv(unz(zip_path, "income.csv"))
@@ -39,17 +12,22 @@ income_dateset <- read.csv(unz(zip_path, "income.csv"))
 
 ```
 
+Load data from datasets.zip file.
+
 ## 2. EDA - Data Cleaning and Initial Analysis
 
-### 2.1 Glimpse at initial dataset
+### 2.1 Glimpse At Initial Dataset
 
 ```{r income-EDA-start, include=T , eval=T}
 # Set a seed for reproducibility and to minimize RAM usage
 set.seed(62380486) 
 
 # Select and rename data from dataset as income_0, which contains income, children
-df_income <- income_dateset %>% select(Total.Household.Income,Members.with.age.5...17.years.old) %>% 
-rename(income = Total.Household.Income, children = Members.with.age.5...17.years.old)
+df_income <- income_dateset %>% 
+  select(Total.Household.Income,Members.with.age.5...17.years.old) %>% 
+  rename(income = Total.Household.Income, 
+         children = Members.with.age.5...17.years.old
+         )
 
 # Summarize df_income
 xskim   <- skim(df_income) |> select(skim_variable, n_missing)
@@ -292,7 +270,7 @@ plot_model_fit(xmodel_2$model, income_2, "income", "children")
 
 ## 4. Model Explanation
 
-#### 4.1 Model Form
+### 4.1 Model Form
 
 The specific form of this model is expressed as: $income = b_0 + b_1 \cdot children + \epsilon$, and could be given as: $income \approx b_0 + b_1 \cdot children$ when $\epsilon$ is acceptable in practice.
 
@@ -322,7 +300,7 @@ cat(paste0("Model name : xmodel_2 \n b0 = ", b0_2, ", b1 = ", b1_2, "\n"))
 
 ```
 
-#### 4.2 Prediction Mapping
+### 4.2 Prediction Mapping
 
 ```{r pred_income function, include=TRUE,eval=TRUE}
 pred_income <- function(b0, b1, n) {
@@ -346,7 +324,7 @@ pred_2 <- round(pred_income(b0_2, b1_1, n), 2)
 
 ```
 
-#### 4.3 interval for $\hat{b}_1$
+### 4.3 interval for $\hat{b}_1$
 
 To calculate the confidence intervals for $b_1$, we apply the formula provided in Week 3 of the lecture notes (Li, 2025). The formula allows us to estimate the range within which the true value of b_1 is likely to fall.
 
@@ -387,14 +365,38 @@ confidence_interval_b1 <- function(y, x, b1_hat, alpha=0.05) {
 results <- data.frame(
   Model = c("xmodel_0", "xmodel_1", "xmodel_2"),
   Lower_Bound = c(
-    confidence_interval_b1(y=xmodel_0$train$income, x=xmodel_0$train$children, b1_hat=coef(xmodel_0$model)[2], alpha = alpha)[1],
-    confidence_interval_b1(y=xmodel_1$train$income, x=xmodel_1$train$children, b1_hat=coef(xmodel_1$model)[2], alpha = alpha)[1],
-    confidence_interval_b1(y=xmodel_2$train$income, x=xmodel_2$train$children, b1_hat=coef(xmodel_2$model)[2], alpha = alpha)[1]
+    confidence_interval_b1(y=xmodel_0$train$income, x=xmodel_0$train$children,
+                           b1_hat=coef(xmodel_0$model)[2],alpha = alpha
+                           )[1],
+    
+    confidence_interval_b1(y=xmodel_1$train$income, x=xmodel_1$train$children,
+                           b1_hat=coef(xmodel_1$model)[2], alpha = alpha
+                           )[1],
+    
+    confidence_interval_b1(y=xmodel_2$train$income, x=xmodel_2$train$children,
+                           b1_hat=coef(xmodel_2$model)[2], alpha = alpha
+                           )[1]
   ),
+  
   Upper_Bound = c(
-    confidence_interval_b1(y=xmodel_0$train$income, x=xmodel_0$train$children, b1_hat=coef(xmodel_0$model)[2], alpha = alpha)[2],
-    confidence_interval_b1(y=xmodel_1$train$income, x=xmodel_1$train$children, b1_hat=coef(xmodel_1$model)[2], alpha = alpha)[2],
-    confidence_interval_b1(y=xmodel_2$train$income, x=xmodel_2$train$children, b1_hat=coef(xmodel_2$model)[2], alpha = alpha)[2]
+    confidence_interval_b1(y=xmodel_0$train$income, 
+                           x=xmodel_0$train$children, 
+                           b1_hat=coef(xmodel_0$model)[2],
+                           alpha = alpha
+                           )[2],
+    
+    confidence_interval_b1(y=xmodel_1$train$income, 
+                           x=xmodel_1$train$children, 
+                           b1_hat=coef(xmodel_1$model)[2], 
+                           alpha = alpha
+                           )[2],
+    
+    
+    confidence_interval_b1(y=xmodel_2$train$income,
+                           x=xmodel_2$train$children, 
+                           b1_hat=coef(xmodel_2$model)[2],
+                           alpha = alpha
+                           )[2]
   )
 )
 
@@ -402,6 +404,8 @@ results <- data.frame(
 knitr::kable(results, caption = "Prediction Intervals for b1 of Models")
 
 ```
+
+All intervals of these 3 models contain 0.
 
 ```{r Display-each-results-table,include=TRUE,eval=T,echo=T}
 # Create a results data frame for each model
@@ -444,7 +448,7 @@ knitr::kable(results_1, caption = "Prediction Intervals and Predicted Income for
 knitr::kable(results_2, caption = "Prediction Intervals and Predicted Income for xmodel_2")
 ```
 
-#### 4.4 Check How Many Percent Of Datapoints Lie Within The 90% Prediction Intervals By Test Dataset
+### 4.4 Check How Many Percent Of Datapoints Lie Within The 90% Prediction Intervals By Test Dataset
 
 ```{r checkout_interval, include=TRUE, eval=T}
 checkout_interval <- function(model,alpha=0.05){
@@ -465,14 +469,21 @@ checkout_interval <- function(model,alpha=0.05){
   in_ci_count <- sum(y_hat >= lower_bound & y_hat <= upper_bound)
   
   Percent <- in_ci_count/length(y_hat)*100
-  cat(paste0("Percentage of test points within the ",
-             1-alpha,"% prediction interval:",
-             Percent*100, 
-             "%\n"
-             )
-      )
+  # cat(paste0("Percentage of test points within the ",
+      #        1-alpha,"% prediction interval:",
+      #        Percent*100, 
+      #        "%\n"
+      #        )
+      # )
   return (Percent)
 }
 
-checkout_interval(model = xmodel_0$model,alpha = 0.1)
+checkout_interval(model = xmodel_0,alpha = 0.1)
+```
+
+```{r}
+xmodel_0$test
+xmodel_1$test
+xmodel_2$test
+
 ```
