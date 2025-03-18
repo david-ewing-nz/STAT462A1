@@ -1,5 +1,6 @@
 # Braking Distance
 
+
 ```{r eval = TRUE}
 #Libraries
 library(tidyverse)
@@ -10,10 +11,14 @@ library(tinytex)
 ```
 
 ### 1.a. Load The Dataset (braking.csv)
-```{r eval = TRUE}
-# to read a csv file from STAT462 Assignment 1.Rmd
-# bdata <- read.csv("braking.csv")  # no longer required as braking data loaded in STAT462 Assignment 1.Rmd
-bdata <- braking
+```{r load-braking, include=T, eval=T,echo=T}
+# Loads the income.csv dataset from a zipped file located at zip_path
+zip_path <- "../data/datasets.zip"
+if (file.exists(zip_path)) {
+bdata <- read.csv(unz(zip_path, "braking.csv"))
+} else {
+  stop("The zip file does not exist at the given path.")
+}
 
 ```
 

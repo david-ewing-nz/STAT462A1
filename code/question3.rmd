@@ -48,6 +48,7 @@ summary(possums)
 #
 possums_0 <- subset(possums, select = -c(case, Pop))           # drop case and Pop
 <<<<<<< HEAD
+<<<<<<< HEAD
 
 # if impute is to be considered,  predictive mean matching finds the 
 # closest observed values in the dataset and randomly selects one to 
@@ -72,6 +73,8 @@ possums_0$sex <- as.numeric(possums_0$sex == "f")  # true if female
 
  
 =======
+=======
+>>>>>>> f6a8409baffc36f773767d7e1a88924c890522d9
 possums_0 <- mice(possums_0, m=1, method="pmm") |> complete()  # impute
 # One-hot encode site: Convert the categorical site  into six binary 
 # variables (site1 to  site6).  site7  is not needed due to the 
@@ -99,11 +102,15 @@ possums_1 <- possums_1 |> relocate(age, .after = last_col())   # age last
 
 # Display the first few rows
 head(possums_1)
+<<<<<<< HEAD
+>>>>>>> f6a8409baffc36f773767d7e1a88924c890522d9
+=======
 >>>>>>> f6a8409baffc36f773767d7e1a88924c890522d9
 ```
 
 ```{r visualise-age, include=F}
 
+<<<<<<< HEAD
 <<<<<<< HEAD
 head(possums_0)
 summary(possums_0)
@@ -116,6 +123,21 @@ ggplot(possums_0, aes(x = age)) +
 =======
 head(possums_1)
 summary(possums_1)
+=======
+head(possums_1)
+summary(possums_1)
+
+# visualise age vs totlnght
+# assuming lenght is in mm and age is in years
+#
+ggplot(possums_1, aes(x = totlngth, y = age)) +
+  geom_point(color = "blue", alpha = 0.6) +  # Scatter plot with transparency
+  geom_smooth(method = "lm", color = "red", se = FALSE) +  # Linear regression line
+  ggtitle("scatter-plot Age vs. Total Length") +
+  xlab("Total Length (mm)") +
+  ylab("Age (years)") +
+  theme_minimal()
+>>>>>>> f6a8409baffc36f773767d7e1a88924c890522d9
 
 # visualise age vs totlnght
 # assuming lenght is in mm and age is in years
@@ -154,6 +176,7 @@ cat("\npossums_2:   ", nrow(possums_2), "\npTestDf:     ", nrow(pTestDf), "\nVpV
 ```
 ```{r models-evaluation}
 
+<<<<<<< HEAD
 <<<<<<< HEAD
 # Define all possible predictor combinations
 #
@@ -200,12 +223,43 @@ plm <- lm(pmodel_formula, data = possums_2)
 preds <- predict(plm, newdata = pValidateDf)
 mse_validation <- mean((pValidateDf$age - preds)^2)
 
+=======
+
+
+# Identify dummy cols
+psite_cols <- grep("^site", names(possums_2), value = TRUE)
+
+# all predictors excluding age, sex, and  dummies
+#
+predictors    <- names(possums_2)[!names(possums_2) %in% c("age", "sex", psite_cols)]
+predictors
+possum_models <- regsubsets(age ~ ., data = possums_2, nvmax = length(predictors))
+
+# Evaluate models on validation set
+pmodel_summary <- summary(possum_models)
+pmodel_idx <- which.min(pmodel_summary$bic) # Select best model based on BIC (bayesian)
+pmodel_predictors <- names(which(pmodel_summary$which[pmodel_idx, ] == TRUE))[-1]  # Extract best predictors
+
+# Construct formula for the best model
+pmodel_formula <- as.formula(paste("age ~", paste(pmodel_predictors, collapse = " + ")))
+
+# Fit the best model
+plm <- lm(pmodel_formula, data = possums_2)
+
+# Evaluate on validation set
+preds <- predict(plm, newdata = pValidateDf)
+mse_validation <- mean((pValidateDf$age - preds)^2)
+
+>>>>>>> f6a8409baffc36f773767d7e1a88924c890522d9
 # Print MSE
 print(mse_validation)
 
 
 
 
+<<<<<<< HEAD
+>>>>>>> f6a8409baffc36f773767d7e1a88924c890522d9
+=======
 >>>>>>> f6a8409baffc36f773767d7e1a88924c890522d9
 ```
 

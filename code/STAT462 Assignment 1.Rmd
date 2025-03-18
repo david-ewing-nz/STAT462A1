@@ -63,8 +63,12 @@ file.exists("../code/question3.Rmd")
 
 # Load all Data 
 
+
+```{r load-dataset, eval=T, include=F}
+
 # Load and preprocess dataset
 # eval=TRUE, as agreed to on 20250313. 
+#
   zip_path <- "../data/datasets.zip"
   if (file.exists(zip_path)) {
     braking <- read.csv(unz(zip_path, "braking.csv"))
