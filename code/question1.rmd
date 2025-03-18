@@ -1,31 +1,342 @@
+## 1. Load Data
 
+Load data from datasets.zip file.
 
+## 2. EDA - Data Cleaning and Initial Analysis
 
+### 2.1 Imperial Units Converted To Metric Units
 
-In this question, do not use the `lm` function or a module that provides an implementation of k-NN. You are allowed to use elementary statistical objects like mean, variance, etc.
+```{r Imperial Units Converted To Metric Units,eval = TRUE}
 
-We will be predicting the distance that a car takes to stop when driving at a certain speed. The dataset is from 1930, so it might be slightly outdated. Units are miles per hour (speed) and feet (distance).
+# Convert units and remove original columns
+bdata_m <- bdata %>%
+  mutate(
+    speed_kmph = speed * 1.60934,  # Convert miles per hour to kilometers per hour
+    dist_m = dist * 0.3048          # Convert feet to meters
+  ) %>% 
+  select(-c(speed, dist))  # Remove original imperial unit columns
 
-## Data Preparation
-
-```{r}
-# Load and preprocess dataset
+sskim<- skim(bdata_m)
+print(sskim)
 ```
 
-## Linear Regression (Without lm)
+### 2.2 Dataset Split Randomly Into Training (80%) And Test (20%) Sets
 
-```{r}
-# Compute slope and intercept for simple linear regression
+```{r bDataset-Split,eval = TRUE}
+set.seed(1)
+
+
+# Split randomly into training set (80%)
+train_ind <- sample(1:50, size = 50 * 0.8)
+
+df_train <- bdata_m[train_ind, ]
+
+# Split randomly into training set (20%)
+
+df_test <- bdata_m[-train_ind, ]  #- sign in front onf vector excludes from indexing
+
 ```
 
-Using the linear regression model, predict the braking distance for a car going at 30 km/h and include an 80% prediction interval.
+### 2.3 Scatter Plot Of Training Data (Extra)
 
-```{r}
-# Prediction for 30 km/h
+```{r Scatter-Plot, eval=T,echo=F}
+trainplot <- ggplot(data = df_train, aes(x = speed_kmph, y = dist_m)) +
+  geom_point(colour ="black", alpha = 0.5) +
+  geom_point(shape = 21, fill = "black", color = "black", size = 2) + #adding labels and title
+labs(
+  title = "Speed vs Braking Distance",
+  subtitle = "(Training Dataset)",
+  x = "Speed (km/h)",
+  y = "Distance (m)"
+) + 
+  # font changed to sans
+  # customize theme
+  theme(
+    plot.title = element_text(family = "sans", size = 16, face = "bold", hjust = 0.5),
+        plot.subtitle = element_text(family = "sans", size = 12, face = "bold", hjust = 0.5),
+    axis.title.x = element_text(family = "sans", size = 12),
+    axis.title.y = element_text(family = "sans", size = 12),
+    axis.text = element_text(family = "sans", size = 10),
+    legend.text = element_text(family = "sans", size = 10),
+    legend.title = element_text(family = "sans", size = 12)
+  )
+
+trainplot
+
 ```
 
-## k-NN Model
+## 3. Simple Linear Regression
 
-```{r}
-# Fit and predict using k-NN model
+### 3.1 Code To Calculate for Slope $b_1$ and intercept $b_0$
+
+In this simple linear regression model the slope `b1` is 0.76 (2 d.p.) and the intercept `b0` is -5.75 (2 d.p.). Please see code below.
+
+```{r bra_calculate_coefficients,include=TRUE, eval=TRUE}
+# Calculate b1 and b0 coefficients
+mean_speed <- mean(df_train$speed_kmph)
+mean_dist <- mean(df_train$dist_m)
+
+b1 <- sum((df_train$speed_kmph - mean_speed) * (df_train$dist_m - mean_dist)) / 
+      sum((df_train$speed_kmph - mean_speed)^2)
+
+b0 <- mean_dist - b1 * mean_speed
+
+# Print the coefficients with formatting
+cat(paste0("The coefficient b1 is: ", round(b1, 4), "\n"))
+cat(paste0("The coefficient b0 is: ", round(b0, 4), "\n"))
+
+
+```
+
+### 3.2 In this linear regression model: If you increase your speed by 5km/h, how many more metres of braking distance do you expect?:
+
+The slope $b_1$ indicates the change in braking distance for each additional kilometer per hour of speed, and we see that this is a positive relationship. Therefore, in this linear regression model, if you increase your speed by 5km/h, this model predicts that you will need 3.82m (2 d.p.) (0.76\*5) of additional braking distance, with everything else being equal. See code below
+
+```{r include=TRUE, eval=TRUE}
+additonalbrakingdist <- b1 * 5
+additonalbrakingdist
+
+```
+
+### 3.3 How much of the variation in the data can be explained by your linear regression model?
+
+The R squared ratio is used to determine how much variation in the data is being captured and explained in the linear regression model. From the R squared calculation (see code below) 0.60 (2 d.p.) or 59.91% (2 d.p.) of the variation in data can be explained by the linear regression model which is moderate goodness-of-fit.
+
+However, it also means that 40.09% of the variance is unexplained, which could be due to other factors such as random noise, weather or roading conditions. This R squared value suggests there is room to improve the model's predictive power further.
+
+It is also important to note that as this braking dataset is from 1930, it is most likely out-of-date and does not factor into account the improvement in car brake and tyre design over essentially the last 100 years. If sampled with up to date data a stronger linear or even quadratic relationship may be observed.
+
+```{r include=TRUE, eval=TRUE}
+# To calculate the R squared ratio we need to calculate the ratio of the ESS and TSS
+
+# Calculating the total sum of squares (TSS)
+TSS <- sum((df_train$dist_m - mean(df_train$dist_m))^2)
+
+# To calculate EsS need to predict values first.
+pred_slr <- b0 + b1 * df_train$speed_kmph
+
+# ESS
+ESS_slr <- sum((pred_slr - mean(df_train$dist_m))^2)
+
+# Calculating R squared equals
+rsq_slr = ESS_slr / TSS
+
+rsq_slr
+
+```
+
+### 3.4 Is speed a significant predictor for 'dist' at the 95% confidence interval
+
+Yes, 'speed' is a significant predictor for 'dist' at the 95% confidence level. The is because the slope (`b1` = 0.76) is statisically significant at the 95% confidence level because the confidence interval [b1_lower: 0.56 (2 d.p.), b1_upper 0.97 (2 d.p.)] does not include zero. This indicates that there is strong evidence of a statisically significant relationship between 'speed' (x-variable) and 'dist' (y-variable).
+
+The 95% confident interval for speed ($b_1$) can be calculated as
+
+$$ b_1 \in \left[ \hat b_1 - t_{1- \alpha/ 2}(n-2)\cdot \mathrm{se}(\hat b_1), \hat b_1 + t_{1-\alpha/ 2}(n-2)\cdot \mathrm{se}(\hat b_1) \right]$$
+
+where
+
+-   $t_{1- \alpha/ 2}(n-2)$ is the $1- \alpha/ 2$-quantile of a t-distribution with $n - 2$ degrees of freedom and
+-   $\mathrm{se}(\hat b_1) = \sqrt{\frac{1}{n-2}\cdot \frac{\sum_{i=1}^n (y_i - \hat y_i)^2}{\sum_{i=1}^n (x_i - \mathrm{mean}(\underline x))^2} }$
+
+Note that $\sum_{i=1}^n (y_i - \hat y_i)^2 = TSS - ESS$
+
+As we are trying to find the 95% confidence interval, therefore $\alpha = 0.05$.
+
+```{r include=TRUE, eval=TRUE}
+alpha <- 0.05
+# gets n from length of dependent variable
+n <- length(df_train$dist_m)
+n
+
+# calcs quantile of t-dist for given 95% confidence interval and n-2 degrees freedom
+t <- qt(1 - alpha / 2, n - 2)
+t
+
+```
+
+Next, we need to apply the formula for $\mathrm{se}(\hat b_1)$ (please see code below)
+
+```{r bra_Calculate the standard error of b1,eval=TRUE,include=T}
+# Calculate the standard error of b1
+n <- nrow(df_train)  # Number of observations
+TSS <- sum((df_train$dist_m - mean(df_train$dist_m))^2)  # Total Sum of Squares
+ESS_slr <- sum((df_train$dist_m - (b0 + b1 * df_train$speed_kmph))^2)  # Error Sum of Squares
+
+se_b1 <- sqrt(1/(n - 2) * (TSS - ESS_slr)) / sum((df_train$speed_kmph - mean(df_train$speed_kmph))^2)
+
+# Print the standard error with formatting
+cat(paste0("The standard error of b1 is: ", round(se_b1, 4), "\n"))
+
+```
+
+So the lower limit and upper limit of confidence interval for $b_1$ are:
+
+```{r include=TRUE, eval=TRUE}
+b1_lower <- b1 - t * se_b1
+b1_lower
+
+b1_upper <- b1 + t * se_b1
+b1_upper
+
+```
+
+### 3.5 Using your linear regression model, predict the braking distance for a car going at 30 km/h, and include an 80% prediction interval
+
+Using this linear regression model, we can predict at an 80% confidence (prediction) interval, that the braking distance for a car going at 30km/h is between 7.60m (2 d.p.) and 26.8m (2 d.p.) with everything else being constant. Please refer to code below.
+
+```{r include=TRUE, eval=TRUE}
+
+# Calculating the point estimate
+
+y_hat <- b0 + b1*30
+y_hat
+
+# calcs quantile of t-dist for given 80% confidence interval and n-2 degrees freedom
+alpha2 = 0.20  # 80% confidence interval
+t2 <- qt(1 - alpha2 / 2, n - 2)
+t2
+
+
+# Calculating Tau
+tau <- t2 * sqrt((TSS - ESS_slr) / (n - 2)) * sqrt(1 + 1 / n + (30 - mean(df_train$speed_kmph))^2 / sum((30 - mean(df_train$speed_kmph))^2))
+
+tau
+
+```
+
+```{r include=TRUE, eval=TRUE}
+# Lower and upper limit for C.I. at 80%
+y_hat_lower <- y_hat - tau
+y_hat_upper <- y_hat + tau
+
+y_hat_lower
+y_hat_upper
+
+```
+
+**Based on this linear regression model, it can be predicted that the braking distance for a car going at 30 km/h is between 7.60 m and 26.80 m with 80% confidence.**
+
+## 4. Fit a k-NN model to the training set.
+
+The k-NN model is created in code below
+
+```{r include=TRUE, eval=TRUE}
+#kNN function created - k=3 selected based on scatter plot above
+
+# provide the x of a new point, & it gets the corresponding y estimation
+
+kNN3 <- function(x){  
+  neighbourhood_vals <- df_train %>% # piping operator
+    # generate distances between new x and each existing x
+    mutate(disttest = abs(speed_kmph-x)) %>% #mutate adds a new column
+    # sorting the distance
+    arrange(disttest) %>% # arranges xdist column rows in ascending order (default)
+    #subset the first k rows
+    slice(1:3) %>% # slice() is used to subset rows of a df based on their interger positions
+      
+    #select target response (y-value column)
+    select(dist_m)
+  
+  # take the average response as the estimate for y
+  return (sum(neighbourhood_vals)/3)
+}
+```
+
+### 4.1 Predict the braking distance for a car going at 30 km/h using this model.
+
+The k-NN model predicts that the braking distance for a car going at 30km/h will be 15.24m with every else being equal.
+
+```{r eval=TRUE, include=TRUE}
+kNN3(30)
+
+```
+
+### 4.2 Visualise both models in a graph that also shows the dataset.
+
+Please see code and graph below
+
+(NOTE: This part of the question doesn't specify what dataset to visualise so have assumed it was the training).
+
+```{r eval=TRUE, include=TRUE, echo=F}
+
+# trainplot is the plot with the scatter layer
+trainplot +
+  # add a layer for kNN21 model
+  geom_function(fun = function(x) {sapply(x, kNN3)}, aes(col =
+  "k-NN")) +
+    # add a layer for SLR model
+    geom_abline(aes(slope = b1, intercept = b0, col = "SLR" ), show.legend = TRUE) +
+    # add a legend for description
+    scale_colour_manual(name = "Model fit", values = c("red", "blue")) + #adding labels and title
+labs(
+  title = "Model Performance Comparsion",
+  subtitle = "(k-NN & SLR Models)",
+  x = "Speed (km/h)",
+  y = "Distance (m)"
+) + 
+  # font changed to sans
+  # customize theme
+  theme(
+    plot.title = element_text(family = "sans", size = 16, face = "bold", hjust = 0.5),
+    axis.title.x = element_text(family = "sans", size = 12),
+    axis.title.y = element_text(family = "sans", size = 12),
+    axis.text = element_text(family = "sans", size = 10),
+    legend.text = element_text(family = "sans", size = 10),
+    legend.title = element_text(family = "sans", size = 12)
+  )
+
+```
+
+### 4.3 Compare the perfomance of both the k-NN model and the linear regression model (SLR) on the test set by computing both their test set MSE. Which one is performing better?
+
+The SLR model is performing better than the kNN model.
+
+The graph below compares the performace of both k-NN model and the SLR model by using the Mean Squared Error (MSE). The MSE is used to see which model performs better. A lower MSE indicates a model's predictions are closer to the actual values.
+
+As you can see from the graph the simple linear regression (SLR) model has a mean squared error (MSE) of 4.42 (2 d.p.) which is much lower than kNN model with an MSE of 17.35 (2 d.p.) of x. Therefore, the SLR model performs best.
+
+```{r eval=TRUE, include=TRUE}
+# Calculating MSE on k-NN model:
+
+pred_test_knn <- sapply(X = df_test$speed_kmph, FUN = kNN3)
+
+MSE_knn = mean((df_test$dist_m - pred_test_knn)^2)
+
+
+# Calculating MSE on Simple Linear Regression Model:
+pred_test_slr <- b0 + b1 * df_test$speed_kmph
+
+MSE_slr = mean((df_test$dist_m - pred_test_slr)^2)
+
+
+```
+
+### 4.4 Visualisation of Both Models (Test Dataset)
+
+```{r eval=TRUE, include=TRUE,echo=F}
+# creating dataframe for plotting
+Model <- c("kNN", "SLR")
+MSE <- c(MSE_knn, MSE_slr)
+dfMSE <-data.frame(Model = Model, MSE =MSE)
+dfMSE
+
+MSEbar <- ggplot(data = dfMSE, aes(x=Model, y=MSE)) + 
+          geom_bar(stat="identity", colour="black", 
+                   fill="blue", width=0.5, ) +
+          geom_text(aes(label= round(MSE, 2)), vjust=1.6, color="white", size=3.5) +
+          theme_minimal() + 
+          ggtitle("Mean Squared Error (MSE) By Model") + 
+  # font changed to sans
+  # customize theme
+  theme(
+    plot.title = element_text(family = "sans", size = 16, face = "bold", hjust = 0.5),
+        plot.subtitle = element_text(family = "sans", size = 16, face = "bold", hjust = 0.5),
+    axis.title.x = element_text(family = "sans", size = 12),
+    axis.title.y = element_text(family = "sans", size = 12),
+    axis.text = element_text(family = "sans", size = 10),
+    legend.text = element_text(family = "sans", size = 10),
+    legend.title = element_text(family = "sans", size = 12)
+)
+    MSEbar
+
 ```
