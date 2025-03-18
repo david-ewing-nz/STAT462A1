@@ -1,7 +1,7 @@
 ---
 title: "STAT462 Assignment 1"
 author:  
- -  Simon Clark (97211898) 
+ -  Simon Clarke (97211898) 
  -  David Ewing (82171165)  
  -  Xia Yu (62380486) 
 
