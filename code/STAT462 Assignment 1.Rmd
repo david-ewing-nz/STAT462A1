@@ -38,17 +38,8 @@ for (pkg in required_packages) {
 
 conflict_prefer("filter", "dplyr"); conflict_prefer("select", "dplyr")
 
-
 knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE, width = 70)
-# THIS IS THE MANUAL WAY. I am happy to help you get your
-# library into the loop above if you have problems doing 
-# this on your own. 
-# library(ggplot2)
-# library(dplyr)
-# library(class)
-# library(tidyr)
-# library(flextable)
-# library(skimr)
+
 ```
 
 ```{r just-checkin, include=F, eval=F}
@@ -84,6 +75,9 @@ file.exists("../code/question3.Rmd")
 
 # all functions have been created without the usage of ChatGPT
 #
+
+# this function is not used in this version
+#
 remove_outliers <- function(df, col) {        
   outliers <- boxplot.stats(df[[col]])$out  #  outliers for col
   if (length(outliers) > 0) {               #  remove if outliers 
@@ -108,11 +102,15 @@ remove_outliers_IQR <- function(df, col, multiplier = 5, upper_cap = Inf) {
   return(df_clean)
 }
 
+# this function is not used in this version
+#
 capture_name <- function(mdl) {
   name <- deparse(substitute(mdl))
   return(name)
 }
 
+# this function is not used in this version
+#
 step_analysis <- function(mdl) {      
    
   lm_form   <- formula(mdl)                    # formula 
