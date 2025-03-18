@@ -138,7 +138,6 @@ step_analysis <- function(mdl) {
 
 # Filipino Household Income
 
-<<<<<<< HEAD
 ```{r load-question2, child="../code/question2.Rmd", eval=T}
 ```
 
