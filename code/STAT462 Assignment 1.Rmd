@@ -26,7 +26,7 @@ options(repos = c(CRAN = "https://cran.stat.auckland.ac.nz/"))
 required_packages <- c("conflicted", "ggplot2", "dplyr", "class",  
                        "tidyverse", "flextable", "skimr", "GGally",
                        "MASS", "car", "formatR", "mice","tinytex" ,
-                       "caret", "gridExtra", "fastDummies" ,"leaps")
+                       "caret", "gridExtra", "fastDummies" ,"leaps","extrafont")
 
 # Install and load missing packages in a single step and quietly
 for (pkg in required_packages) {
@@ -61,7 +61,7 @@ file.exists("../code/question3.Rmd")
 #
   zip_path <- "../data/datasets.zip"
   if (file.exists(zip_path)) {
-    braking <- read.csv(unz(zip_path, "braking.csv"))
+    bdata <- read.csv(unz(zip_path, "braking.csv"))
     income_dateset  <- read.csv(unz(zip_path, "income.csv"))
     possums <- read.csv(unz(zip_path, "possums.csv"))
   } else {
@@ -128,20 +128,57 @@ step_analysis <- function(mdl) {
   }
 }
 
+
+# Function to split data into training and test sets
+split_data <- function(data, train_ratio = 0.8) {
+  # validate train_ratio range
+  if (train_ratio <= 0 || train_ratio >= 1) {
+  stop("Error: train_ratio must be between 0 and 1 (exclusive).")
+}
+  # Randomly select the specified percentage of indices for the training set
+  train_ind <- sample(1:nrow(data), 
+                      size = floor(train_ratio * nrow(data)),
+                      replace = FALSE)
+  
+  # Use the remaining indices for the test set
+  test_ind <- setdiff(1:nrow(data), train_ind)
+  
+  # Create training data using the selected indices
+  train_data <- data[train_ind, , drop = FALSE]
+  rownames(train_data) <- NULL
+
+  # Create test data using the remaining indices
+  test_data <- data[test_ind, , drop = FALSE]
+  rownames(test_data) <- NULL
+  
+  # Return both training and test data as a list
+  return(list(train = train_data, test = test_data))
+}
+
+
 ```
 
+\newpage
 # Braking Distance
-
 
 ```{r load-question1,child="../code/question1.Rmd", eval=T}
 ```
 
+\newpage
 # Filipino Household Income
 
 ```{r load-question2, child="../code/question2.Rmd", eval=T}
 ```
 
+\newpage
 # Predicting Possum Age
 
-```{r load-question3, child="../code/question3.Rmd", eval=T}
+```{r load-question3, child="../code/question3.Rmd", eval=T }
+```
+
+\newpage
+# Appendix
+
+```{r appendix, child="../code/appendix.Rmd", eval=T}
+
 ```

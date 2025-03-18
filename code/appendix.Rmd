@@ -1,0 +1,178 @@
+
+## Common Functions Used
+
+```{r appendix-func, include=TRUE,eval=F}
+
+# this function is not used in this version
+#
+remove_outliers <- function(df, col) {        
+  outliers <- boxplot.stats(df[[col]])$out  #  outliers for col
+  if (length(outliers) > 0) {               #  remove if outliers 
+    df <- df |> filter(!(df[[col]] %in% outliers))
+  }
+  return(df)
+}
+
+
+# This function is used in the question to make income_1 from income_0
+#
+remove_outliers_IQR <- function(df, col, multiplier = 5, upper_cap = Inf) {        
+# Calculate IQR (Quartile distance)
+  Q1 <- quantile(df[[col]], 0.25, na.rm = TRUE)  # The first quartile
+  Q3 <- quantile(df[[col]], 0.75, na.rm = TRUE)  # The third quartile
+  IQR_value <- Q3 - Q1  # IQR value
+  
+  # set lower_bound and upper_bound, upper_cap can be manually set
+  lower_bound <- Q1 - multiplier * IQR_value  
+  upper_bound <- min(Q3 + multiplier * IQR_value, upper_cap)  # upper_cap can be set manually
+  # print(upper_bound)
+  # filter outliers
+  df_clean <- df |> filter(df[[col]] >= lower_bound & df[[col]] <= upper_bound)
+  
+  return(df_clean)
+}
+
+
+# this function is not used in this version
+#
+capture_name <- function(mdl) {
+  name <- deparse(substitute(mdl))
+  return(name)
+}
+
+
+# this function is not used in this version
+#
+step_analysis <- function(mdl) {      
+   
+  lm_form   <- formula(mdl)                    # formula 
+  good_form <- length(all.vars(lm_form)) > 1  # bool : not just the intercept
+  print(good_form)
+  print(lm_form)
+  
+  if (good_form) {
+
+    print(summary(mdl))
+    print(vif(mdl))  
+    
+  } else {
+
+    cat("The stepwise regression resulted in an intercept-only model (",
+        deparse(lm_form), ")\nmeaning none of the predictors were statistically significant.\n") 
+  }
+}
+
+
+# Function to split data into training and test sets
+split_data <- function(data, train_ratio = 0.8) {
+  # validate train_ratio range
+  if (train_ratio <= 0 || train_ratio >= 1) {
+  stop("Error: train_ratio must be between 0 and 1 (exclusive).")
+}
+  # Randomly select the specified percentage of indices for the training set
+  train_ind <- sample(1:nrow(data), 
+                      size = floor(train_ratio * nrow(data)),
+                      replace = FALSE)
+  
+  # Use the remaining indices for the test set
+  test_ind <- setdiff(1:nrow(data), train_ind)
+  
+  # Create training data using the selected indices
+  train_data <- data[train_ind, , drop = FALSE]
+  rownames(train_data) <- NULL
+
+  # Create test data using the remaining indices
+  test_data <- data[test_ind, , drop = FALSE]
+  rownames(test_data) <- NULL
+  
+  # Return both training and test data as a list
+  return(list(train = train_data, test = test_data))
+}
+
+
+{r visualisation-function-coverage, include=TRUE,eval=TRUE,echo=F}
+# Function to visualize prediction interval coverage
+# 
+# This function creates a plot showing test points and their prediction intervals
+# Parameters:
+#   coverage_result: The result from check_prediction_coverage_model function
+#   title: Plot title (default is "Prediction Interval Coverage")
+#   x_lab: Label for x-axis (default is "Predictor")
+#   y_lab: Label for y-axis (default is "Response")
+#   point_size: Size of the plotted points (default is 2)
+#   alpha: Transparency of prediction interval bands (default is 0.3)
+# Returns:
+#   A ggplot object showing the prediction intervals and test points
+plot_prediction_coverage <- function(coverage_result, 
+                                    title = "Prediction Interval Coverage",
+                                    x_lab = "Predictor", 
+                                    y_lab = "Response",
+                                    point_size = 2,
+                                    alpha = 0.3) {
+ 
+  # Extract details from coverage result
+  details <- coverage_result$details
+  
+  # Create the plot
+  p <- ggplot(details, aes(x = x_test)) +
+    # Add prediction interval ribbon
+    geom_ribbon(aes(ymin = lower, ymax = upper), fill = "lightblue", alpha = alpha) +
+    # Add points, colored by whether they fall within the interval
+    geom_point(aes(y = y_test, color = within), size = point_size) +
+    # Customize colors
+    scale_color_manual(values = c("FALSE" = "red", "TRUE" = "darkblue"),
+                      name = "Within interval",
+                      labels = c("FALSE" = "Outside", "TRUE" = "Inside")) +
+    # Add labels and title
+    labs(title = title,
+         subtitle = paste0("Coverage: ", round(coverage_result$percent_within, 1), "%"),
+         x = x_lab,
+         y = y_lab) +
+    # Add theme elements
+    theme_minimal() +
+    theme(legend.position = "bottom")
+  
+  return(p)
+}
+
+
+# Define a unified visualization function
+plot_model_fit <- function(model, data, response, predictor) {
+  # Extract the predicted values from the model
+  data$predicted <- predict(model, newdata = data)
+  
+  # Create the visualization plot
+  ggplot(data, aes(x = .data[[predictor]], y = .data[[response]])) +
+    geom_point(alpha = 0.5) +  # Plot scatter points
+    geom_line(aes(y = predicted), color = "blue", linewidth = 1) +  # Plot the fitted line
+    scale_y_continuous(
+      expand = expansion(mult = c(0.05, 0.05)),
+      labels = function(x) {
+        ifelse(x > 2000000, paste0(x / 1e6, "M"),  # Convert values greater than 2 million to millions
+               ifelse(x > 10000, paste0(x / 1000,"K"), x))  # Convert values greater than 10,000 to thousands
+      }
+    ) +
+    labs(
+      title = paste("Model Fit Line in Model:", deparse(substitute(model))), 
+      x = predictor, 
+      y = ifelse(max(data[[response]]) > 2000000, 
+                  paste0(response, " (unit: millions)"),  # Label in millions
+                  ifelse(max(data[[response]]) > 10000, 
+                         paste0(response, " (unit: thousands)"), response))  # Label in thousands
+    ) +
+    theme_minimal()
+}
+
+# Use the function to visualize the fit line for each model
+plot_model_fit(xmodel_0$model, income_0, "income", "children")
+plot_model_fit(xmodel_1$model, income_1, "income", "children")
+plot_model_fit(xmodel_2$model, income_2, "income", "children")
+
+
+
+
+
+
+
+
+```

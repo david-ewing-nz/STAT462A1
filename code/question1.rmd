@@ -211,10 +211,9 @@ y_hat_upper <- y_hat + tau
 
 y_hat_lower
 y_hat_upper
-
 ```
 
-**Based on this linear regression model, it can be predicted that the braking distance for a car going at 30 km/h is between 7.60 m and 26.80 m with 80% confidence.**
+**Based on this linear regression model, it can be predicted that the braking distance for a car going at 30 km/h is between 5.47 m and 28.89 m with 80% confidence.**
 
 ## 4. Fit a k-NN model to the training set.
 
