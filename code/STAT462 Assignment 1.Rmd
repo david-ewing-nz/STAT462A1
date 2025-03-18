@@ -26,7 +26,7 @@ options(repos = c(CRAN = "https://cran.stat.auckland.ac.nz/"))
 required_packages <- c("conflicted", "ggplot2", "dplyr", "class",  
                        "tidyverse", "flextable", "skimr", "GGally",
                        "MASS", "car", "formatR", "mice","tinytex" ,
-                       "caret", "gridExtra")
+                       "caret", "gridExtra", "fastDummies" ,"leaps")
 
 # Install and load missing packages in a single step and quietly
 for (pkg in required_packages) {

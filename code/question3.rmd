@@ -11,53 +11,7 @@
 ```
 ## Discription
 
-```{r question3-status, include=F, eval=T}
-# created with the help of ChatGPT as this is not a deliverable. 
-# dataframe with workflow steps
-pdf_workflow <- data.frame(
-  Step = c(      "1. initial analysis", 
-                 "2. Exploratory Data Analysis", 
-                 "3. Initial Feature Selection", 
-                 "4. Model Evaluation", 
-                 "5. Refinement of Selected Model", 
-                 "6. Performance Testing"),
 
-  Process = c(   "Remove irrelevant columns (`case`, `Pop`), encode categorical variables", 
-                 "Check missing values, correlation analysis (`cor()`, `ggcorr()`)", 
-                 "Use `stepAIC()` (forward selection) to select key predictors", 
-                 "Check significance (`summary()`), check multicollinearity (`vif()`)", 
-                 "Decide whether to keep/remove non-significant predictors (`hdlngth`)", 
-                 "Compute MSE, residual analysis, compare with alternative models"),
-  
-  Status = c( " Done", 
-              " Done but revisitiong", 
-              " Done (`belly`, `hdlngth` selected)", 
-              " Done (`vif < 5`, no multicollinearity)", 
-              " In progress", 
-              " Not done yet")
-)
-ptable_workflow <- flextable(pdf_workflow) |>
-  theme_box() |>  # Apply box theme for automatic borders
-  set_table_properties(layout = "fixed") |>  # Allow text to wrap
-  width(j = 1, width = 2) |>  # Step column (narrow)
-  width(j = 2, width = 3) |>  # Process column (text wraps naturally)
-  width(j = 3, width = 2) |>  # Status column (smallest)
-  bg(part = "header", bg = "#D3D3D3") |>  # Grey background for header row
-  bg(i = NULL, j = 1, bg = "#D3D3D3", part = "body") |>  # Grey background for first column
-  color(j = 3, color = "blue") |>  # Color status column text blue
-  bold(j = 1) |>  # Bold the "Step" column
-  align(j = 1, align = "left", part = "all") |>  # Left-align first column
-  fontsize(size = 9)  
-
-# status within the group
-ptable_workflow
-
-
-```
-
-```{r}
-ptable_workflow
-```
 
 
 ## Load Data
@@ -74,7 +28,7 @@ possums <- read.csv(unz(zip_path, "possums.csv"))
 
 ## EDA - Data Cleaning and  Initial Analysis
 
-```{r possums-EDA-prep, include=T , eval=T}
+```{r possums-EDA-prep, include=F , eval=T}
 
 set.seed(82171165) 
 pskim   <- skim(possums) |> select(skim_variable, n_missing)
@@ -93,22 +47,42 @@ summary(possums)
 #  convert site to a factor
 #
 possums_0 <- subset(possums, select = -c(case, Pop))           # drop case and Pop
-possums_0 <- mice(possums_0, m=1, method="mean") |> complete() # impute
-possums_0 <- possums_0 |> relocate(age, .after = last_col())   # age is last 
+
+# if impute is to be considered,  predictive mean matching finds the 
+# closest observed values in the dataset and randomly selects one to 
+# impute the missing value.
+#
+possums_0 <- mice(possums_0, m=1, method="pmm") |> complete() # impute predictive mean matching
+
+possums_0 <- possums_0 |> relocate(age, .after = last_col())   # age last 
 names(possums_0)                                               # just checking
-pred_names_0   <- possums_0 |> select(where(is.numeric)) |>  select(-age) |> names() 
-possums_0$sex  <- as.numeric(possums_0$sex == "f")  # true if female
-possums_0$site <- as.factor(possums_0$site)
+pred_names_0  <- possums_0 |> 
+                    select(where(is.numeric)) |>  
+                    select(-age) |> names() 
+possums_0$sex <- as.numeric(possums_0$sex == "f")  # true if female
+
+# site to be converted to a factor or should    
+# the factors be separated into separate columns? 
+#
+#possums_0$site <- as.factor(possums_0$site)
+ possums_0      <- dummy_cols(possums_0, select_columns = "site", 
+                              remove_first_dummy = T,          # all zeros = site1
+                              remove_selected_columns = T)     # site is dropped
+
+ 
 ```
 
-```{r visualise-age}
+```{r visualise-age, include=F}
+
+head(possums_0)
+summary(possums_0)
 
 # visualise age 
+#
 ggplot(possums_0, aes(x = age)) +
   geom_histogram(binwidth = 1, fill = "blue", color = "black") +
   ggtitle("Possum Ages Distribution (imputed and without outliers)") +
   theme_minimal()
-
 ```
 
 ```{r possum-data-splitting}
@@ -122,7 +96,7 @@ ggplot(possums_0, aes(x = age)) +
 pTrainIdx <- createDataPartition(possums_0$age, p = 0.8, list = FALSE)
 possums_1 <- possums_0[pTrainIdx, ]
 
-# pTestDf is the test possum data           (with stratification)
+# pTestDf     is the test possum data       (with stratification)
 # pValidateDf is the validation possum data (with stratification) 
 #
 pTempDf     <- possums_0[-pTrainIdx, ]  #not train
@@ -131,6 +105,27 @@ pTestDf     <- pTempDf[pTestIdx, ]
 pValidateDf <- pTempDf[-pTestIdx, ]
 
 cat("\npossums_1:   ", nrow(possums_1), "\npTestDf:     ", nrow(pTestDf), "\nVpValidateDf: ", nrow(pValidateDf),"\n")
+
+```
+```{r models-evaluation}
+
+# Define all possible predictor combinations
+#
+predictors <- names(possums_1)[!names(possums_1) %in% c("age", "sex", "site")]  # Exclude categorical
+best_model <- regsubsets(age ~ ., data = possums_1, nvmax = length(predictors))
+
+# Evaluate models on validation set
+model_summary <- summary(best_model)
+best_model_idx <- which.min(model_summary$bic)  # Select best model based on BIC
+best_predictors <- model_summary$which[best_model_idx, ]
+best_formula <- as.formula(paste("age ~", paste(names(best_predictors)[-1], collapse = " + ")))
+
+# Fit the best model
+final_model <- lm(best_formula, data = possums_1)
+
+# Evaluate on validation set
+preds <- predict(final_model, newdata = pValidateDf)
+mse_validation <- mean((pValidateDf$age - preds)^2)
 
 ```
 
