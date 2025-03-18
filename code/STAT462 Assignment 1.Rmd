@@ -1,7 +1,7 @@
 ---
 title: "STAT462 Assignment 1"
 author:  
- -  Simon Clark (97211898) 
+ -  Simon Clarke (97211898) 
  -  David Ewing (82171165)  
  -  Xia Yu (62380486) 
 
@@ -38,17 +38,8 @@ for (pkg in required_packages) {
 
 conflict_prefer("filter", "dplyr"); conflict_prefer("select", "dplyr")
 
-
 knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE, width = 70)
-# THIS IS THE MANUAL WAY. I am happy to help you get your
-# library into the loop above if you have problems doing 
-# this on your own. 
-# library(ggplot2)
-# library(dplyr)
-# library(class)
-# library(tidyr)
-# library(flextable)
-# library(skimr)
+
 ```
 
 ```{r just-checkin, include=F, eval=F}
@@ -64,8 +55,10 @@ file.exists("../code/question3.Rmd")
 # Load all Data 
 
 ```{r load-dataset, eval=T, include=T}
+
 # Load and preprocess dataset
 # eval=TRUE, as agreed to on 20250313. 
+#
   zip_path <- "../data/datasets.zip"
   if (file.exists(zip_path)) {
     braking <- read.csv(unz(zip_path, "braking.csv"))
@@ -79,8 +72,8 @@ file.exists("../code/question3.Rmd")
 
 ```{r common-functions, eval=T, include=F}
 
-# all functions have been created without the usage of ChatGPT
-
+# this function is not used in this version
+#
 remove_outliers <- function(df, col) {        
   outliers <- boxplot.stats(df[[col]])$out  #  outliers for col
   if (length(outliers) > 0) {               #  remove if outliers 
@@ -89,8 +82,10 @@ remove_outliers <- function(df, col) {
   return(df)
 }
 
+# This function is used in the question to make income_1 from income_0
+#
 remove_outliers_IQR <- function(df, col, multiplier = 5, upper_cap = Inf) {        
-  # Calculate IQR (Quartile distance)
+# Calculate IQR (Quartile distance)
   Q1 <- quantile(df[[col]], 0.25, na.rm = TRUE)  # The first quartile
   Q3 <- quantile(df[[col]], 0.75, na.rm = TRUE)  # The third quartile
   IQR_value <- Q3 - Q1  # IQR value
@@ -105,11 +100,15 @@ remove_outliers_IQR <- function(df, col, multiplier = 5, upper_cap = Inf) {
   return(df_clean)
 }
 
+# this function is not used in this version
+#
 capture_name <- function(mdl) {
   name <- deparse(substitute(mdl))
   return(name)
 }
 
+# this function is not used in this version
+#
 step_analysis <- function(mdl) {      
    
   lm_form   <- formula(mdl)                    # formula 
@@ -133,11 +132,13 @@ step_analysis <- function(mdl) {
 
 # Braking Distance
 
-```{r load-question1, braking="../code/question1.Rmd", eval=F}
+
+```{r, child="../code/question1.Rmd", eval=T}
 ```
 
 # Filipino Household Income
 
+<<<<<<< HEAD
 ```{r load-question2, child="../code/question2.Rmd", eval=T}
 ```
 

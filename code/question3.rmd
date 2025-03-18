@@ -47,6 +47,11 @@ summary(possums)
 #  convert site to a factor
 #
 possums_0 <- subset(possums, select = -c(case, Pop))           # drop case and Pop
+
+# if impute is to be considered,  predictive mean matching finds the 
+# closest observed values in the dataset and randomly selects one to 
+# impute the missing value.
+#
 possums_0 <- mice(possums_0, m=1, method="pmm") |> complete()  # impute
 # One-hot encode site: Convert the categorical site  into six binary 
 # variables (site1 to  site6).  site7  is not needed due to the 
@@ -78,8 +83,19 @@ head(possums_1)
 
 ```{r visualise-age, include=F}
 
-head(possums_1)
-summary(possums_1)
+
+head(possums_0)
+summary(possums_0)
+
+# visualise age 
+#
+ggplot(possums_0, aes(x = age)) +
+  geom_histogram(binwidth = 1, fill = "blue", color = "black") +
+  ggtitle("Possum Ages Distribution (imputed and with outliers)") +
+  xlab("Total Length (mm)") +
+  ylab("Age (years)") +
+  theme_minimal()
+
 
 # visualise age vs totlnght
 # assuming lenght is in mm and age is in years
@@ -91,7 +107,6 @@ ggplot(possums_1, aes(x = totlngth, y = age)) +
   xlab("Total Length (mm)") +
   ylab("Age (years)") +
   theme_minimal()
-
 ```
 
 ```{r possum-data-splitting}
@@ -118,6 +133,9 @@ cat("\npossums_2:   ", nrow(possums_2), "\npTestDf:     ", nrow(pTestDf), "\nVpV
 ```
 ```{r models-evaluation}
 
+
+# Define all possible predictor combinations
+#
 
 
 # Identify dummy cols
@@ -146,10 +164,7 @@ mse_validation <- mean((pValidateDf$age - preds)^2)
 
 # Print MSE
 print(mse_validation)
-
-
-
-
+ 
 ```
 
 
