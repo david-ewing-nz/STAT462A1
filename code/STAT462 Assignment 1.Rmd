@@ -1,17 +1,18 @@
 ---
 title: "STAT462 Assignment 1"
-author:  
- -  Simon Clarke (97211898) 
- -  David Ewing (82171165)  
- -  Xia Yu (62380486) 
-
+author:
+- Simon Clarke (97211898)
+- David Ewing (82171165)
+- Xia Yu (62380486)
 date: "`r format(Sys.time(), '%Y-%m-%d %H:%M')`"
-output: 
+output:
   pdf_document:
     latex_engine: xelatex
+  html_document:
+    df_print: paged
 header-includes:
-  - \usepackage{fancyvrb}
-  - \RecustomVerbatimEnvironment{verbatim}{Verbatim}{xleftmargin=5mm}
+- \usepackage{fancyvrb}
+- \RecustomVerbatimEnvironment{verbatim}{Verbatim}{xleftmargin=5mm}
 ---
 
 ```{r setup, include=F,eval=T}
@@ -23,10 +24,14 @@ header-includes:
 options(repos = c(CRAN = "https://cran.stat.auckland.ac.nz/"))
 
 # Required packages
+
+
 required_packages <- c("conflicted", "ggplot2", "dplyr", "class",  
                        "tidyverse", "flextable", "skimr", "GGally",
                        "MASS", "car", "formatR", "mice","tinytex" ,
-                       "caret", "gridExtra", "fastDummies" ,"leaps","extrafont")
+                       "caret", "gridExtra", "fastDummies" ,"leaps",
+                       "extrafont",  "officer", "Metrics") 
+
 
 # Install and load missing packages in a single step and quietly
 for (pkg in required_packages) {
@@ -173,7 +178,7 @@ split_data <- function(data, train_ratio = 0.8) {
 \newpage
 # Predicting Possum Age
 
-```{r load-question3, child="../code/question3.Rmd", eval=T }
+```{r load-question3, child="../code/question3.Rmd", eval=T}
 ```
 
 \newpage

@@ -1,3 +1,7 @@
+
+
+# ---------------------------
+
 ## Description
 
 ```{r possum-map, echo=FALSE, out.width="70%", fig.align='center'}
@@ -5,12 +9,14 @@
   knitr::include_graphics("../images/possum_age_plot.png")
 
 ```
-
 ## Discription
+
+
+
 
 ## Load Data
 
-```{r load-possums, include=F, eval=F}
+```{r load-possums, include=F, eval=T}
 
 # Load and preprocess data-set
 # Performed in framework file as agreed 20250313
@@ -20,7 +26,24 @@ possums <- read.csv(unz(zip_path, "possums.csv"))
 
 ```
 
-## EDA - Data Cleaning and Initial Analysis
+## EDA - Data Cleaning and Feature Engineering
+
+Two columns (**case, Pop**) were dropped as instructed. **case** was a 
+numerical reference that is not needed in our model; **Pop** was redundant 
+with **site**. 
+
+Missing data in age by imputing with `mice(method = "pmm")` which provide a 
+predictive mean matching method. We imputed the data rather than removed it
+due to the small number of data rows and the large number of predictors. In 
+particular, **age** could not be left with `na` values as we wanted to ensure 
+stratification when we are splitting the dataset for training, test, and
+validation. 
+
+The categorical data (**sex, site**) were changed to an appropriate format as
+instructed: **sex** was converted to binary (`female = 1, male = 0`). 
+**site** was One-hot encoded and the column for factor 7 was dropped to avoid 
+multicollinearity. 
+
 
 ```{r possums-EDA-prep, include=F , eval=T}
 
@@ -73,37 +96,71 @@ possums_1 <- possums_1 |> relocate(age, .after = last_col())   # age last
 
 # Display the first few rows
 head(possums_1)
+pskim   <- skim(possums_1) |> select(skim_variable, n_missing)
+# Convert to flextable and format
+pskim_ft <- pskim |>
+  flextable() |>
+  set_table_properties(width = 0.7, layout = "autofit") |>
+  bold(j = 1, bold = TRUE) |>  # Bold first column
+  theme_vanilla() |>  # Apply a professional theme
+  border_outer(part = "all", border = fp_border(color = "black", width = 1)) |>  # Add outer border
+  border_inner_h(border = fp_border(color = "black", width = 0.5)) |>  # Add horizontal borders
+  border_inner_v(border = fp_border(color = "black", width = 0.5))  # Add vertical borders
+
+pskim_ft
+# Explicitly print in RMarkdown
+knitr::knit_print(pskim)
 ```
 
-```{r visualise-age, include=F}
 
 
-head(possums_0)
-summary(possums_0)
+```{r visualise-0, eval=T}
+
+print(pskim) 
+
+```
+\newpage
+
+
+
+
+```{r plots, eval=T}
 
 # visualise age 
 #
-ggplot(possums_0, aes(x = age)) +
+pPlot_age <- ggplot(possums_0, aes(x = age)) +
   geom_histogram(binwidth = 1, fill = "blue", color = "black") +
   ggtitle("Possum Ages Distribution (imputed and with outliers)") +
   xlab("Total Length (mm)") +
   ylab("Age (years)") +
   theme_minimal()
 
-
 # visualise age vs totlnght
 # assuming lenght is in mm and age is in years
 #
-ggplot(possums_1, aes(x = totlngth, y = age)) +
+pPlot_age_vs_totlngth <- ggplot(possums_1, aes(x = totlngth, y = age)) +
   geom_point(color = "blue", alpha = 0.6) +  # Scatter plot with transparency
   geom_smooth(method = "lm", color = "red", se = FALSE) +  # Linear regression line
   ggtitle("scatter-plot Age vs. Total Length") +
+  xlim(73, 96) +  # Set x-axis limits
   xlab("Total Length (mm)") +
   ylab("Age (years)") +
   theme_minimal()
+
 ```
 
-```{r possum-data-splitting}
+A scatter-plot `Age vs. Total Length` is included as requested. 
+
+```{r visualise-age-vs-totlngth,  fig.align="center", out.width="70%", eval=F}
+print(pPlot_age_vs_totlngth)
+
+```
+
+The dataset was then split with a focus on stratification with 80% Training 
+(**possum_2**), 10% Test(**pTestDf**), used to evaluate models, and 
+10% Validation (**pValidateDf**), used for final model selection and assessment
+
+```{r possum-data-splitting, include=F , eval=T}
 
 # data-splitting is performed before cleaning predictors 
 # to simulate real-world events. 
@@ -122,11 +179,16 @@ pTestIdx    <- createDataPartition(pTempDf$age, p = 0.5, list = FALSE)
 pTestDf     <- pTempDf[pTestIdx, ]   
 pValidateDf <- pTempDf[-pTestIdx, ]
 
-cat("\npossums_2:   ", nrow(possums_2), "\npTestDf:     ", nrow(pTestDf), "\nVpValidateDf: ", nrow(pValidateDf),"\n")
+
+
 
 ```
 
-```{r models-evaluation}
+```{r , eval=T}
+cat("\npossums_2:   ", nrow(possums_2), "\npTestDf:     ", nrow(pTestDf), "\nVpValidateDf: ", nrow(pValidateDf),"\n")
+```
+
+```{r models-evaluation, eval=T}
 
 
 # Define all possible predictor combinations
@@ -139,8 +201,8 @@ psite_cols <- grep("^site", names(possums_2), value = TRUE)
 # all predictors excluding age, sex, and  dummies
 #
 predictors    <- names(possums_2)[!names(possums_2) %in% c("age", "sex", psite_cols)]
-predictors
-possum_models <- regsubsets(age ~ ., data = possums_2, nvmax = length(predictors))
+predictors_2  <- names(possums_2)
+possum_models <- regsubsets(age ~ ., data = possums_2, nvmax = 256)  # Increase nvmax
 
 # Evaluate models on validation set
 pmodel_summary <- summary(possum_models)
@@ -155,17 +217,107 @@ plm <- lm(pmodel_formula, data = possums_2)
 
 # Evaluate on validation set
 preds <- predict(plm, newdata = pValidateDf)
-mse_validation <- mean((pValidateDf$age - preds)^2)
+pMSE_validate <- mean((pValidateDf$age - preds)^2)
 
 # Print MSE
-print(mse_validation)
+print(pMSE_validate)
  
 ```
 
+
+```{r possum-model-selection,    results='asis' , eval=T}
+
+# Define all possible predictor combinations
+#
+psite_cols <- grep("^site", names(possums_2), value = TRUE)
+
+# Exclude age, sex, and one-hot encoded site variables
+#
+predictors  <- names(possums_2)[!names(possums_2) %in% c("age", "sex", psite_cols)]
+predictors  <- names(possums_2)
+
+# Perform best subset selection
+#
+possum_models <- regsubsets(age ~ ., data = possums_2, nvmax = 256)  # exhaustive but greedy
+
+
+# Evaluate models on validation set
+#
+pmodel_summary     <- summary(possum_models)
+
+# Select the best model based on BIC
+pmodel_idx <- which.min(pmodel_summary$bic)  
+pmodel_predictors <- names(which(pmodel_summary$which[pmodel_idx, ] == TRUE))[-1]
+
+# Construct formula for best model
+pmodel_formula <- as.formula(paste("age ~", paste(pmodel_predictors, collapse = " + ")))
+
+# Fit the best model
+plm <- lm(pmodel_formula, data = possums_2)
+
+# Predictions on validation set
+preds <- predict(plm, newdata = pValidateDf)
+
+# Compute Additional Metrics
+pMSE_validate  <- mean((pValidateDf$age - preds)^2)  # MSE
+pRMSE_validate <- sqrt(pMSE_validate)  # RMSE
+pMAE_validate  <- mae(pValidateDf$age, preds)  # MAE
+pRSE           <- summary(plm)$sigma  # Residual Standard Error
+pAdjR2         <- summary(plm)$adj.r.squared  # Adjusted R²
+pAIC           <- AIC(plm)  # AIC Score
+
+print(pMSE_validate)
+
+```
+
+
+```{r possum-model-selection2,  results='asis' , eval=T}
+# Print Metrics
+metrics_df <- 0
+metrics_df <- data.frame(
+  Metric = c("MSE", "RMSE", "MAE", "Residual Std Error", "Adjusted R2", "AIC"),
+  Value = unlist(c(pMSE_validate, pRMSE_validate, pMAE_validate, pRSE, pAdjR2, pAIC))
+)
+# print(pmodel_summary) #  this is a mess
+print(metrics_df)
+
+summary_mat <- as.data.frame(pmodel_summary$which)  # Convert selection matrix to a DataFrame
+
+# Ensure variable names are clear
+colnames(summary_mat)[1] <- "Intercept"  # Rename the intercept column
+
+# Replace TRUE/FALSE with symbols for better readability
+summary_mat[summary_mat == TRUE] <- "●"
+summary_mat[summary_mat == FALSE] <- ""
+
+# Convert to flextable
+summary_ft <- flextable(summary_mat) |>
+  set_table_properties(width = 0.9, layout = "autofit") |>  # Adjust width to fit better
+  theme_vanilla() |>                                        # Apply a clean theme
+  bold(j = 1, bold = TRUE) |>                               # Bold the first column (Intercept)
+  align(align = "center", part = "all") |>                  # Center-align all columns
+  border_outer(part = "all",                                # Outer border
+  border = officer::fp_border(color = "black",
+                              width = 1)) |>               
+  border_inner_h(border = officer::fp_border(color = "black", 
+                                             width = 0.5)) |>  # Horizontal borders
+  border_inner_v(border = officer::fp_border(color = "black", 
+                                             width = 0.5)) |>  # Vertical borders
+  rotate(j = 1:ncol(summary_mat),
+         rotation = "btlr", part = "header")                   # Rotate column names
+```
+
+\newpage 
+```{r possum-model-selection21, eval=T}
+# Print the formatted table
+summary_ft
+```
+
+
+
+
 \newpage
-
 ## Feature Selection and Model Training
-
 ```{r}
 
 
