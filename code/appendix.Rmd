@@ -3,14 +3,17 @@
 
 ```{r appendix-func, include=TRUE,eval=F}
 
-# this function is not used in this version
+# Load and preprocess dataset
+# eval=TRUE, as agreed to on 20250313. 
 #
-remove_outliers <- function(df, col) {        
-  outliers <- boxplot.stats(df[[col]])$out  #  outliers for col
-  if (length(outliers) > 0) {               #  remove if outliers 
-    df <- df |> filter(!(df[[col]] %in% outliers))
+load_datasets <- function(zip_path = "../data/datasets.zip") {
+  if (file.exists(zip_path)) {
+    assign("bdata",          read.csv(unz(zip_path, "braking.csv")), envir = .GlobalEnv)
+    assign("income_dateset", read.csv(unz(zip_path, "income.csv")),  envir = .GlobalEnv)
+    assign("possums",        read.csv(unz(zip_path, "possums.csv")), envir = .GlobalEnv)
+  } else {
+    stop(paste(zip_path, "not found."))
   }
-  return(df)
 }
 
 

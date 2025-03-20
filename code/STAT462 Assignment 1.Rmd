@@ -1,18 +1,26 @@
 ---
 title: "STAT462 Assignment 1"
 author:
-- Simon Clarke (97211898)
-- David Ewing (82171165)
-- Xia Yu (62380486)
+  - Simon Clarke (97211898)
+  - David Ewing (82171165)
+  - Xia Yu (62380486)
 date: "`r format(Sys.time(), '%Y-%m-%d %H:%M')`"
+
 output:
   pdf_document:
     latex_engine: xelatex
+    extra_dependencies: ["caption"]
   html_document:
     df_print: paged
+
+geometry: margin=1in
+
 header-includes:
-- \usepackage{fancyvrb}
-- \RecustomVerbatimEnvironment{verbatim}{Verbatim}{xleftmargin=5mm}
+  - \input{preamble.tex}
+  - \usepackage{caption}
+  - \usepackage{graphicx}
+  - \usepackage{fancyvrb}
+  - \RecustomVerbatimEnvironment{verbatim}{Verbatim}{xleftmargin=5mm}
 ---
 
 ```{r setup, include=F,eval=T}
@@ -30,7 +38,10 @@ required_packages <- c("conflicted", "ggplot2", "dplyr", "class",
                        "tidyverse", "flextable", "skimr", "GGally",
                        "MASS", "car", "formatR", "mice","tinytex" ,
                        "caret", "gridExtra", "fastDummies" ,"leaps",
-                       "extrafont",  "officer", "Metrics") 
+                       "extrafont",  "officer", "Metrics","glmnet" ,
+                       "knitr", "kableExtra", "cowplot"  ) 
+
+
 
 
 # Install and load missing packages in a single step and quietly
@@ -47,45 +58,26 @@ knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE, width = 70)
 
 ```
 
-```{r just-checkin, include=F, eval=F}
-# is the folder and file structure 
-# constructed correctly? 
-dir.exists("../code/")
-file.exists("../code/question1.Rmd")
-file.exists("../code/question2.Rmd")
-file.exists("../code/question3.Rmd")
 
-```
 
-# Load all Data 
 
-```{r load-dataset, eval=T, include=T}
 
+
+
+```{r common-functions, eval=T, include=F}
 # Load and preprocess dataset
 # eval=TRUE, as agreed to on 20250313. 
 #
-  zip_path <- "../data/datasets.zip"
+load_datasets <- function(zip_path = "../data/datasets.zip") {
   if (file.exists(zip_path)) {
-    bdata <- read.csv(unz(zip_path, "braking.csv"))
-    income_dateset  <- read.csv(unz(zip_path, "income.csv"))
-    possums <- read.csv(unz(zip_path, "possums.csv"))
+    assign("bdata",          read.csv(unz(zip_path, "braking.csv")), envir = .GlobalEnv)
+    assign("income_dateset", read.csv(unz(zip_path, "income.csv")),  envir = .GlobalEnv)
+    assign("possums",        read.csv(unz(zip_path, "possums.csv")), envir = .GlobalEnv)
   } else {
-    stop(paste(zip_path, " not found."))
+    stop(paste(zip_path, "not found."))
   }
-
-``` 
-
-```{r common-functions, eval=T, include=F}
-
-# this function is not used in this version
-#
-remove_outliers <- function(df, col) {        
-  outliers <- boxplot.stats(df[[col]])$out  #  outliers for col
-  if (length(outliers) > 0) {               #  remove if outliers 
-    df <- df |> filter(!(df[[col]] %in% outliers))
-  }
-  return(df)
 }
+
 
 # This function is used in the question to make income_1 from income_0
 #
@@ -112,27 +104,8 @@ capture_name <- function(mdl) {
   return(name)
 }
 
-# this function is not used in this version
-#
-step_analysis <- function(mdl) {      
-   
-  lm_form   <- formula(mdl)                    # formula 
-  good_form <- length(all.vars(lm_form)) > 1  # bool : not just the intercept
-  print(good_form)
-  print(lm_form)
-  
-  if (good_form) {
 
-    print(summary(mdl))
-    print(vif(mdl))  
-    
-  } else {
-
-    cat("The stepwise regression resulted in an intercept-only model (",
-        deparse(lm_form), ")\nmeaning none of the predictors were statistically significant.\n") 
-  }
-}
-
+ 
 
 # Function to split data into training and test sets
 split_data <- function(data, train_ratio = 0.8) {
@@ -161,8 +134,45 @@ split_data <- function(data, train_ratio = 0.8) {
 }
 
 
+
+skim_flextable <- function(df, col_width = 1.5) {
+  df_skim <- skim(df)  |> select(skim_variable, skim_type, n_missing)
+  ft_skim <- flextable(df_skim) |>
+    set_header_labels(
+      skim_variable = "Column",
+      skim_type     = "Type",
+      n_missing     = "Missing"
+      ) |>  
+    set_table_properties(width = 1.0, layout = "autofit") |>  # global width
+    width(j = 1, width = col_width) |>                        # Adjust column 1
+    bold(j = 1, bold = TRUE) |>                               # Bold   column 1
+    theme_vanilla() # |>                                      # theme
+ #   border_outer(part = "all", border = fp_border(color = "black", width = 1)) |> #  border 
+ #   border_inner_h(border = fp_border(color = "black", width = 0.5)) |>           #  horizontal 
+ #   border_inner_v(border = fp_border(color = "black", width = 0.5))              #  vertical 
+  return(ft_skim)
+}
+
+
 ```
 
+
+```{r just-checkin, include=F, eval=F}
+# is the folder and file structure 
+# constructed correctly? 
+dir.exists("../code/")
+file.exists("../code/question1.Rmd")
+file.exists("../code/question2.Rmd")
+file.exists("../code/question3.Rmd")
+
+```
+
+```{r load-dataset, eval=T, include=F}
+
+# Load all Data 
+load_datasets() 
+
+```
 \newpage
 # Braking Distance
 
@@ -184,6 +194,6 @@ split_data <- function(data, train_ratio = 0.8) {
 \newpage
 # Appendix
 
-```{r appendix, child="../code/appendix.Rmd", eval=T}
+```{r load-appendix, child="../code/appendix.Rmd", eval=T}
 
 ```

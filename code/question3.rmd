@@ -1,3 +1,8 @@
+---
+output:
+  pdf_document: default
+  html_document: default
+---
 
 
 # ---------------------------
@@ -9,165 +14,238 @@
   knitr::include_graphics("../images/possum_age_plot.png")
 
 ```
-## Discription
 
 
+##3. Feature Selection## 4. Model Training## 5. Model Evaluation## 6. Validation on Test Set## 7. Interpretation and Further Exploration
 
+\newpage 
+## 1. Data Loading
 
-## Load Data
-
-```{r load-possums, include=F, eval=T}
-
-# Load and preprocess data-set
-# Performed in framework file as agreed 20250313
-zip_path <- "../data/datasets.zip"
-file.exists(zip_path)
-possums <- read.csv(unz(zip_path, "possums.csv"))
-
-```
-
-## EDA - Data Cleaning and Feature Engineering
-
-Two columns (**case, Pop**) were dropped as instructed. **case** was a 
-numerical reference that is not needed in our model; **Pop** was redundant 
-with **site**. 
-
-Missing data in age by imputing with `mice(method = "pmm")` which provide a 
-predictive mean matching method. We imputed the data rather than removed it
-due to the small number of data rows and the large number of predictors. In 
-particular, **age** could not be left with `na` values as we wanted to ensure 
-stratification when we are splitting the dataset for training, test, and
-validation. 
-
-The categorical data (**sex, site**) were changed to an appropriate format as
-instructed: **sex** was converted to binary (`female = 1, male = 0`). 
-**site** was One-hot encoded and the column for factor 7 was dropped to avoid 
-multicollinearity. 
-
-
-```{r possums-EDA-prep, include=F , eval=T}
-
-set.seed(82171165) 
-pskim   <- skim(possums) |> select(skim_variable, n_missing)
-print(pskim)                           
-head(possums)    
-summary(possums)
-
-# possums_0 is the working copy of possums
-# we will:
-#  drop case - as this is just a numeric row index
-#  drop Pop - it is redundant as we have site. 
-#  relocate age to the last column for ease of analysis 
-#  impute missing data 
-#  capture numeric predictors before altering sex or site
-#  mutate sex to numberic where female = 1
-#  convert site to a factor
-#
-possums_0 <- subset(possums, select = -c(case, Pop))           # drop case and Pop
-
-# if impute is to be considered,  predictive mean matching finds the 
-# closest observed values in the dataset and randomly selects one to 
-# impute the missing value.
-#
-possums_0 <- mice(possums_0, m=1, method="pmm") |> complete()  # impute
-# One-hot encode site: Convert the categorical site  into six binary 
-# variables (site1 to  site6).  site7  is not needed due to the 
-# "dummy variable trap".    
-#
-possums_0$site <- as.factor(possums_0$site)                  # factor 
-ps_dummies <- model.matrix(~ site - 1, data = possums_0)     # get 7 site columns
-psite_7   <- levels(possums_0$site)[7]                       # get factor 7
-ps_dummies <- ps_dummies[, colnames(ps_dummies) != paste0("site", psite_7)] #remove site7
-colnames(ps_dummies) <- paste0("site", levels(possums_0$site)[-7]) # add names
-possums_1 <- cbind(possums_0, ps_dummies)                    # combine with dummies
-possums_1$site <- NULL                                       # remove categorical
-
-names(possums_1)                                             # just checking
-pred_names_1  <- possums_1 |> 
-                    select(where(is.numeric)) |>  
-                    select(-age) |> names() 
-
-#  mutate sex to numberic where female = 1
-#
-possums_1$sex <- as.numeric(possums_0$sex == "f")            #  true if female
-
-possums_1 <- possums_1 |> relocate(age, .after = last_col())   # age last 
-
-
-# Display the first few rows
-head(possums_1)
-pskim   <- skim(possums_1) |> select(skim_variable, n_missing)
-# Convert to flextable and format
-pskim_ft <- pskim |>
-  flextable() |>
-  set_table_properties(width = 0.7, layout = "autofit") |>
-  bold(j = 1, bold = TRUE) |>  # Bold first column
-  theme_vanilla() |>  # Apply a professional theme
-  border_outer(part = "all", border = fp_border(color = "black", width = 1)) |>  # Add outer border
-  border_inner_h(border = fp_border(color = "black", width = 0.5)) |>  # Add horizontal borders
-  border_inner_v(border = fp_border(color = "black", width = 0.5))  # Add vertical borders
-
+The data was loaded via a common function  load_datasets() ` used to load all data from  ../data/dataset.zip . See Appendix for the description. The data used for these questions is as follows: 
+```{r format-possums, include=T, eval=T}
+pskim_ft = skim_flextable(possums)
 pskim_ft
-# Explicitly print in RMarkdown
-knitr::knit_print(pskim)
 ```
 
+Plotting age vs totle
 
-
-```{r visualise-0, eval=T}
-
-print(pskim) 
-
-```
-\newpage
-
-
-
-
-```{r plots, eval=T}
-
-# visualise age 
-#
-pPlot_age <- ggplot(possums_0, aes(x = age)) +
-  geom_histogram(binwidth = 1, fill = "blue", color = "black") +
-  ggtitle("Possum Ages Distribution (imputed and with outliers)") +
-  xlab("Total Length (mm)") +
-  ylab("Age (years)") +
-  theme_minimal()
-
+```{r possum-scatterplot1}
 # visualise age vs totlnght
-# assuming lenght is in mm and age is in years
+# assuming length is in mm and age is in years
 #
-pPlot_age_vs_totlngth <- ggplot(possums_1, aes(x = totlngth, y = age)) +
+pPlot_age_v_lngth <- ggplot(possums, aes(x = totlngth, y = age)) +
   geom_point(color = "blue", alpha = 0.6) +  # Scatter plot with transparency
   geom_smooth(method = "lm", color = "red", se = FALSE) +  # Linear regression line
-  ggtitle("scatter-plot Age vs. Total Length") +
+  # ggtitle("Age vs. Total Length") +
   xlim(73, 96) +  # Set x-axis limits
   xlab("Total Length (mm)") +
   ylab("Age (years)") +
   theme_minimal()
+```
+
+```{r include=F}
+ggsave("possum-scatter-plot.png", pPlot_age_v_lngth, width = 6, height = 4, dpi = 300)  # Adjust width & height
+
+pPlot_age_v_lngth <- "
+\\begin{figure}[H]
+    \\centering
+    \\begin{minipage}{0.5\\textwidth}  % Set to 50% of page width
+        \\centering
+        \\includegraphics[width=\\textwidth]{possum-scatter-plot.png}
+        \\caption{Age vs. Total Length}
+    \\end{minipage}
+\\end{figure}
+"
+
+```
+\newpage
+An initial scatter plot shows  the raw data directly from the CSV file. It is a plot of age (years) vs total body length (mm) of the possums.
+
+```{r possum-scatterplot2}
+knitr::asis_output(pPlot_age_v_lngth)
+```
+
+There is a **weak positive correlation**  seen by the regression line. This suggests a weak relationship that as total length increases, the age  increases. There is a **high degree of variability** that goes against the regression line -  some younger possums have large total lengths, and some older ones have shorter total lengths.
+
+Additionally, the data points are widely spread, particularly at higher total lengths, suggesting that total length alone is not be a strong predictor of age. There is a high density of points is between 80–95 mm in total length. There is a high density of points between 1–6 years in age. This indicates that most possums fall within this range. 
+
+\newpage
+```{r possum-boxplots1 }
+pbox_age <- ggplot(possums, aes(x = "", y = age)) + 
+  geom_boxplot(fill = "lightblue", outlier.colour = "red", outlier.shape = 16, outlier.size = 3) + 
+  labs(title = "Box Plot of Age (Years)", y = "Age (Years)", x = "") + 
+  theme_minimal()
+
+# Create Boxplot for Total Length
+pbox_lngth <- ggplot(possums, aes(x = "", y = totlngth)) + 
+  geom_boxplot(fill = "lightgreen", outlier.colour = "red", outlier.shape = 16, outlier.size = 3) + 
+  labs(title = "Box Plot of Total Length (mm)", y = "Total Length (mm)", x = "") + 
+  theme_minimal()
 
 ```
 
-A scatter-plot `Age vs. Total Length` is included as requested. 
+```{r boxplot1-print, include=F}
 
-```{r visualise-age-vs-totlngth,  fig.align="center", out.width="70%", eval=F}
-print(pPlot_age_vs_totlngth)
+ggsave("boxplot_age.png", plot = pbox_age,   width = 3, height = 4)
+ggsave("pbox_lngth.png",  plot = pbox_lngth, width = 3, height = 4)
+
+pboxes <- paste("
+\\begin{figure}[htbp]
+    \\centering
+    \\makebox[0.65\\textwidth]{  % Adjust overall width
+  
+        \\begin{minipage}[t]{0.30\\textwidth}
+            \\centering
+            \\includegraphics[width=\\textwidth]{boxplot_age.png}   \
+            \\caption{Age}
+        \\end{minipage}
+        \\hspace{10pt}  % Adjust horizontal spacing
+        \\begin{minipage}[t]{0.30\\textwidth}
+            \\centering
+            \\includegraphics[width=\\textwidth]{pbox_lngth.png}
+            \\caption{Total Length}
+        \\end{minipage}
+    }
+\\end{figure}
+", sep = "\n")
+
+```
+```{r}
+knitr::asis_output(pboxes)
+```
+
+
+Outliers are present, particularly possums older than 5 years, which will require further examination.
+
+The data is raw and unprocessed. Inconsistencies and/or these outliers may be affecting the results. Additional Data cleaning and Analysis is required. As this is only one predictor. Others win need to be explored to build a model that will confidently predict age. 
+
+
+
+
+### 2a. Dropping Unnecessary Columns
+Two columns (**case**, **Pop**) were dropped as instructed. **case** was a numerical reference that is not needed in our model; **Pop** was redundant with **site**. 
+
+### 2b. and 2c. Convert Categorical Columns
+
+The categorical data (**sex**, **site**) were changed to an appropriate format as
+instructed: **sex** was converted to binary (`female = 1, male = 0`). 
+**site** was One-hot encoded and the column for factor 7 was dropped to avoid 
+multicollinearity. 
+
+In preperation for splitting the data and ensuring stratification, missing data in age is imputing with `mice(method = "pmm")` which provide a predictive mean matching method. 
+We imputed the data rather than removed it due to the small number of data rows and the large number of predictors. In particular, **age** could not be left with `NA`.
+
+
+```{r possums-convert1, include=T , eval=T}
+set.seed(82171165) 
+
+#  drop case - as this is just a numeric row index
+#  drop Pop - it is redundant as we have site. 
+#
+possums_0 <- subset(possums, select = -c(case, Pop))           # drop case and Pop
+
+#  impute with predictive mean matching finds the closest observed values 
+#  in the dataset and randomly selects one to impute the missing value.
+#
+possums_0 <- mice(possums_0, m=1, method="pmm") |> complete()  # impute
+
+# One-hot encode site: Convert site  into six binary variables (site1 to  site6). 
+# site7  is not needed due to the "dummy variable trap".    
+#
+possums_0$site       <- as.factor(possums_0$site)                       # factor 
+ps_dummies           <- model.matrix(~ site - 1, data = possums_0)      # get 7 site columns
+psite_7              <- levels(possums_0$site)[7]                       # get factor 7
+pcols_2_keep         <- colnames(ps_dummies) != paste0("site", psite_7) # boolean arguments
+ps_dummies           <- ps_dummies[, pcols_2_keep]              # remove site7
+colnames(ps_dummies) <- paste0("site", levels(possums_0$site)[-7])      # add names
+possums_1            <- cbind(possums_0, ps_dummies)                    # combine with dummies
+possums_1$site       <- NULL    # remove categorical              
+
+# mutate sex to numberic where female = 1
+#
+possums_1$sex <- as.numeric(possums_0$sex == "f")            #  true if female
+
+# relocate age to last for analysis 
+#
+possums_1 <- possums_1 |> relocate(age, .after = last_col()) 
+
+```
+\newpage
+
+```{r format_comparison, include=F, eval=T}
+
+
+new_colnames <- c( # from assignment
+  "sex (female=1)", "head length", "skull length", "body length", 
+  "tail length", "foot length", "ear conch length", "eye size", 
+  "chest girth", "belly girth", "site1", "site2", "site3", "site4", 
+  "site5", "site6", "age (years)"
+)
+
+# from image 
+possums_1_display <- possums_1
+colnames(possums_1_display) <- new_colnames
+
+possums_1_display <- possums_1_display %>%
+  rename(
+    Cambarville                = site1,
+    Bellbird                   = site2,
+    `Whian Whian State Forest` = site3,
+    `Byrangery Reserve`        = site4,
+    `Conondale Ranges`         = site5,
+    `Bulburin State Forest`    = site6
+  )
+
+
+# Check new column names
+colnames(possums_1_display)
+
+
+# Create the flextable
+pskim_ft1 <- skim_flextable(possums_1_display,2.0)
+
+# Save as an image
+save_as_image(pskim_ft1, path = "pskim_ft1.png")
+save_as_image(pskim_ft,  path = "pskim_ft.png")
+file.exists("pskim_ft.png")
+file.exists("pskim_ft1.png")
+pcompare_tables <- paste("
+\\begin{figure}[htbp]
+    \\centering
+    \\begin{minipage}[t]{0.45\\textwidth}
+        \\centering
+        \\includegraphics[height=9cm]{pskim_ft.png}
+        \\captionof{figure}{\\texttt{possums.csv}}
+    \\end{minipage}
+    \\hfill
+    \\begin{minipage}[t]{0.45\\textwidth}
+        \\centering
+        \\includegraphics[height=9cm]{pskim_ft1.png}
+        \\captionof{figure}{\\texttt{possums\\_1}}
+    \\end{minipage}
+\\end{figure}
+", sep = "\n")
 
 ```
 
-The dataset was then split with a focus on stratification with 80% Training 
+
+```{r print-tables, include=T, eval=T}
+knitr::asis_output(pcompare_tables)
+
+```
+
+
+### 2d. Data Splitting for Training, Testing, and Validation
+
+The dataset is split with a focus on stratification with 80% Training 
 (**possum_2**), 10% Test(**pTestDf**), used to evaluate models, and 
 10% Validation (**pValidateDf**), used for final model selection and assessment
 
-```{r possum-data-splitting, include=F , eval=T}
+```{r possum-data-splitting, include=T , eval=T}
 
 # data-splitting is performed before cleaning predictors 
 # to simulate real-world events. 
 # 
-
-# possums_1 is the training possum data (with stratification for age)
-#
 pTrainIdx <- createDataPartition(possums_1$age, p = 0.8, list = FALSE)
 possums_2 <- possums_1[pTrainIdx, ]
 
@@ -179,14 +257,47 @@ pTestIdx    <- createDataPartition(pTempDf$age, p = 0.5, list = FALSE)
 pTestDf     <- pTempDf[pTestIdx, ]   
 pValidateDf <- pTempDf[-pTestIdx, ]
 
-
-
-
 ```
 
-```{r , eval=T}
-cat("\npossums_2:   ", nrow(possums_2), "\npTestDf:     ", nrow(pTestDf), "\nVpValidateDf: ", nrow(pValidateDf),"\n")
+```{r format-split, include=F, eval=T}
+total_rows <- nrow(possums_1)
+
+#  dataframe
+#
+psplit_df <- data.frame(
+  Dataset = c("possums_2", "pTestDf", "pValidateDf"),
+  `pctExpected` = c(80, 10, 10),
+  `xExpected`   = c(total_rows * 0.8, total_rows * 0.1, total_rows * 0.1),
+  `xActual`     = c(nrow(possums_2), nrow(pTestDf), nrow(pValidateDf))  # Actual values from your dataset
+   )
+
+# flextable
+#
+psplit_ft <- flextable(psplit_df) |> 
+  set_header_labels(
+     Dataset       = "Dataset",
+    `pctExpected` = "Percentage",
+    `xExpected`   = "Calculate Rows",
+    `xActual`     = "Actual Rows"
+  ) |> 
+  autofit() |>  # fit the content
+  width(j = 1, width = .8) |>  # Dataset 
+  width(j = 2:4, width = 0.8) |>  # other columns
+  set_table_properties(width = 0.3) |>  #  overall  width
+  autofit()  # fit the widths setting
+
 ```
+\newpage
+
+While stratification helps maintain representative samples, the constraints of whole-number rows and maintaining class balance mean that the exact number of rows in each split may differ slightly from expected percentages. This explains why possums_2, pTestDf, and pValidateDf did not match the precise 80-10-10 split but were close enough to maintain the stratified structure.
+
+```{r print-split}
+knitr::knit_print(psplit_ft, output_format = "latex")
+```
+
+
+
+
 
 ```{r models-evaluation, eval=T}
 
@@ -287,7 +398,7 @@ summary_mat <- as.data.frame(pmodel_summary$which)  # Convert selection matrix t
 colnames(summary_mat)[1] <- "Intercept"  # Rename the intercept column
 
 # Replace TRUE/FALSE with symbols for better readability
-summary_mat[summary_mat == TRUE] <- "●"
+summary_mat[summary_mat == TRUE] <- "T"
 summary_mat[summary_mat == FALSE] <- ""
 
 # Convert to flextable
@@ -310,7 +421,7 @@ summary_ft <- flextable(summary_mat) |>
 \newpage 
 ```{r possum-model-selection21, eval=T}
 # Print the formatted table
-summary_ft
+#summary_ft
 ```
 
 
