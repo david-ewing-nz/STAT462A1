@@ -136,20 +136,16 @@ split_data <- function(data, train_ratio = 0.8) {
 
 
 skim_flextable <- function(df, col_width = 1.5) {
-  df_skim <- skim(df)  |> select(skim_variable, skim_type, n_missing)
+  df_skim <- skim(df) |> 
+    select(skim_variable, skim_type, n_missing) |> 
+    rename(Column = skim_variable, Type = skim_type, Missing = n_missing)  # Rename 
+  
   ft_skim <- flextable(df_skim) |>
-    set_header_labels(
-      skim_variable = "Column",
-      skim_type     = "Type",
-      n_missing     = "Missing"
-      ) |>  
-    set_table_properties(width = 1.0, layout = "autofit") |>  # global width
+    set_table_properties(width = 1.0, layout = "autofit") |>  # Set global width
     width(j = 1, width = col_width) |>                        # Adjust column 1
-    bold(j = 1, bold = TRUE) |>                               # Bold   column 1
-    theme_vanilla() # |>                                      # theme
- #   border_outer(part = "all", border = fp_border(color = "black", width = 1)) |> #  border 
- #   border_inner_h(border = fp_border(color = "black", width = 0.5)) |>           #  horizontal 
- #   border_inner_v(border = fp_border(color = "black", width = 0.5))              #  vertical 
+    bold(j = 1, bold = TRUE) |>                               # Bold column 1
+    theme_vanilla() 
+  
   return(ft_skim)
 }
 

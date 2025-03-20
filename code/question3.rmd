@@ -6,6 +6,29 @@ output:
 
 
 # ---------------------------
+```{r echo=T}
+chunk_options_df <- data.frame(
+  Option = c("echo=TRUE (default)", "echo=FALSE", "eval=FALSE", "include=FALSE", 'results="hide"'),
+  Code_Displayed = c("Yes", "No", "Yes", "No", "Yes"),
+  Code_Executed = c("Yes", "Yes", "No", "Yes", "Yes"),
+  Output_Shown = c("Yes", "Yes", "No", "No", "No")
+)
+
+# Convert to flextable
+chunk_options_ft <- flextable(chunk_options_df) |>
+  set_header_labels(
+    Option = "Option",
+    Code_Displayed = "Code Displayed?",
+    Code_Executed = "Code Executed?",
+    Output_Shown = "Output Shown?"
+  ) |>
+  theme_vanilla() |> 
+  autofit()
+chunk_options_ft
+```
+
+
+
 
 ## Description
 
@@ -22,14 +45,14 @@ output:
 ## 1. Data Loading
 
 The data was loaded via a common function  load_datasets() ` used to load all data from  ../data/dataset.zip . See Appendix for the description. The data used for these questions is as follows: 
-```{r format-possums, include=T, eval=T}
+```{r format-possums,   eval=F}
 pskim_ft = skim_flextable(possums)
 pskim_ft
 ```
 
-Plotting age vs totle
+Plotting age vs Total Length (totlngth)
 
-```{r possum-scatterplot1}
+```{r possum-scatterplot1, eval=F}
 # visualise age vs totlnght
 # assuming length is in mm and age is in years
 #
@@ -43,7 +66,7 @@ pPlot_age_v_lngth <- ggplot(possums, aes(x = totlngth, y = age)) +
   theme_minimal()
 ```
 
-```{r include=F}
+```{r , eval=F}
 ggsave("possum-scatter-plot.png", pPlot_age_v_lngth, width = 6, height = 4, dpi = 300)  # Adjust width & height
 
 pPlot_age_v_lngth <- "
@@ -61,7 +84,7 @@ pPlot_age_v_lngth <- "
 \newpage
 An initial scatter plot shows  the raw data directly from the CSV file. It is a plot of age (years) vs total body length (mm) of the possums.
 
-```{r possum-scatterplot2}
+```{r possum-scatterplot2, eval=F}
 knitr::asis_output(pPlot_age_v_lngth)
 ```
 
@@ -70,21 +93,23 @@ There is a **weak positive correlation**  seen by the regression line. This sugg
 Additionally, the data points are widely spread, particularly at higher total lengths, suggesting that total length alone is not be a strong predictor of age. There is a high density of points is between 80–95 mm in total length. There is a high density of points between 1–6 years in age. This indicates that most possums fall within this range. 
 
 \newpage
-```{r possum-boxplots1 }
+```{r possum-boxplots1 , eval=F}
 pbox_age <- ggplot(possums, aes(x = "", y = age)) + 
   geom_boxplot(fill = "lightblue", outlier.colour = "red", outlier.shape = 16, outlier.size = 3) + 
   labs(title = "Box Plot of Age (Years)", y = "Age (Years)", x = "") + 
   theme_minimal()
 
 # Create Boxplot for Total Length
+
 pbox_lngth <- ggplot(possums, aes(x = "", y = totlngth)) + 
   geom_boxplot(fill = "lightgreen", outlier.colour = "red", outlier.shape = 16, outlier.size = 3) + 
   labs(title = "Box Plot of Total Length (mm)", y = "Total Length (mm)", x = "") + 
   theme_minimal()
 
+
 ```
 
-```{r boxplot1-print, include=F}
+```{r boxplot1-print, eval=F}
 
 ggsave("boxplot_age.png", plot = pbox_age,   width = 3, height = 4)
 ggsave("pbox_lngth.png",  plot = pbox_lngth, width = 3, height = 4)
@@ -110,7 +135,8 @@ pboxes <- paste("
 ", sep = "\n")
 
 ```
-```{r}
+
+```{r , eval=F}
 knitr::asis_output(pboxes)
 ```
 
@@ -136,7 +162,7 @@ In preperation for splitting the data and ensuring stratification, missing data 
 We imputed the data rather than removed it due to the small number of data rows and the large number of predictors. In particular, **age** could not be left with `NA`.
 
 
-```{r possums-convert1, include=T , eval=T}
+```{r possums-convert1 , eval=F}
 set.seed(82171165) 
 
 #  drop case - as this is just a numeric row index
@@ -172,7 +198,7 @@ possums_1 <- possums_1 |> relocate(age, .after = last_col())
 ```
 \newpage
 
-```{r format_comparison, include=F, eval=T}
+```{r format_comparison , eval=F}
 
 
 new_colnames <- c( # from assignment
@@ -229,7 +255,7 @@ pcompare_tables <- paste("
 ```
 
 
-```{r print-tables, include=T, eval=T}
+```{r print-tables, eval=F}
 knitr::asis_output(pcompare_tables)
 
 ```
@@ -241,7 +267,7 @@ The dataset is split with a focus on stratification with 80% Training
 (**possum_2**), 10% Test(**pTestDf**), used to evaluate models, and 
 10% Validation (**pValidateDf**), used for final model selection and assessment
 
-```{r possum-data-splitting, include=T , eval=T}
+```{r possum-data-splitting , eval=F}
 
 # data-splitting is performed before cleaning predictors 
 # to simulate real-world events. 
@@ -259,7 +285,7 @@ pValidateDf <- pTempDf[-pTestIdx, ]
 
 ```
 
-```{r format-split, include=F, eval=T}
+```{r format-split, eval=F}
 total_rows <- nrow(possums_1)
 
 #  dataframe
@@ -275,14 +301,14 @@ psplit_df <- data.frame(
 #
 psplit_ft <- flextable(psplit_df) |> 
   set_header_labels(
-     Dataset       = "Dataset",
+     Dataset      = "Dataset",
     `pctExpected` = "Percentage",
     `xExpected`   = "Calculate Rows",
     `xActual`     = "Actual Rows"
   ) |> 
   autofit() |>  # fit the content
-  width(j = 1, width = .8) |>  # Dataset 
-  width(j = 2:4, width = 0.8) |>  # other columns
+  width(j = 1, width = .8) |>           # Dataset 
+  width(j = 2:4, width = 0.8) |>        # other columns
   set_table_properties(width = 0.3) |>  #  overall  width
   autofit()  # fit the widths setting
 
@@ -291,7 +317,7 @@ psplit_ft <- flextable(psplit_df) |>
 
 While stratification helps maintain representative samples, the constraints of whole-number rows and maintaining class balance mean that the exact number of rows in each split may differ slightly from expected percentages. This explains why possums_2, pTestDf, and pValidateDf did not match the precise 80-10-10 split but were close enough to maintain the stratified structure.
 
-```{r print-split}
+```{r print-split, eval=F}
 knitr::knit_print(psplit_ft, output_format = "latex")
 ```
 
@@ -299,7 +325,7 @@ knitr::knit_print(psplit_ft, output_format = "latex")
 
 
 
-```{r models-evaluation, eval=T}
+```{r models-evaluation, eval=F}
 
 
 # Define all possible predictor combinations
@@ -336,7 +362,7 @@ print(pMSE_validate)
 ```
 
 
-```{r possum-model-selection,    results='asis' , eval=T}
+```{r possum-model-selection,     eval=F}
 
 # Define all possible predictor combinations
 #
@@ -382,7 +408,7 @@ print(pMSE_validate)
 ```
 
 
-```{r possum-model-selection2,  results='asis' , eval=T}
+```{r possum-model-selection2,  results='asis' , eval=F}
 # Print Metrics
 metrics_df <- 0
 metrics_df <- data.frame(
@@ -419,7 +445,7 @@ summary_ft <- flextable(summary_mat) |>
 ```
 
 \newpage 
-```{r possum-model-selection21, eval=T}
+```{r possum-model-selection21, eval=F}
 # Print the formatted table
 #summary_ft
 ```
@@ -429,14 +455,14 @@ summary_ft <- flextable(summary_mat) |>
 
 \newpage
 ## Feature Selection and Model Training
-```{r}
+```{r, eval=F}
 
 
 ```
 
 ## Model Evaluation
 
-```{r}
+```{r, eval=F}
 # Residuals vs. Leverage plot shows potential high-leverage points, which may be influencing the model too much
 
 # Compute evaluation metrics
@@ -444,7 +470,7 @@ summary_ft <- flextable(summary_mat) |>
 
 ## Further Exploration
 
-```{r}
+```{r, eval=F}
 # Additional analysis or research questions 
 #[204]
 ```
