@@ -1,12 +1,6 @@
----
-output:
-  pdf_document: default
-  html_document: default
----
-
 
 # ---------------------------
-```{r echo=T}
+```{r echo=F}
 chunk_options_df <- data.frame(
   Option = c("echo=TRUE (default)", "echo=FALSE", "eval=FALSE", "include=FALSE", 'results="hide"'),
   Code_Displayed = c("Yes", "No", "Yes", "No", "Yes"),
@@ -39,34 +33,129 @@ chunk_options_ft
 ```
 
 
-##3. Feature Selection## 4. Model Training## 5. Model Evaluation## 6. Validation on Test Set## 7. Interpretation and Further Exploration
+
 
 \newpage 
 ## 1. Data Loading
 
 The data was loaded via a common function  load_datasets() ` used to load all data from  ../data/dataset.zip . See Appendix for the description. The data used for these questions is as follows: 
-```{r format-possums,   eval=F}
+```{r format-possums,   eval=T}
 pskim_ft = skim_flextable(possums)
 pskim_ft
 ```
 
+
+
+```{r possum-summary-stats, eval=T}
+# Compute summary statistics for all numeric features
+possum_summary <- possums |>
+  select(where(is.numeric)) |>
+  summarise(
+    across(
+      everything(), 
+      .fns = list(
+        Mean = \(x) mean(x, na.rm = TRUE), 
+        Median = \(x) median(x, na.rm = TRUE), 
+        Min = \(x) min(x, na.rm = TRUE), 
+        Max = \(x) max(x, na.rm = TRUE), 
+        IQR = \(x) IQR(x, na.rm = TRUE)
+      )
+    )
+  )
+
+# Reshape the summary statistics into a tidy format
+possum_summary <- possum_summary |>
+  pivot_longer(cols = everything(), names_to = c("Variable", ".value"), names_sep = "_")
+```
+
+
+```{r possum-summary-table, include=F}
+# Convert to a flextable for better display
+possum_summary_ft <-  flextable(possum_summary) |>
+  set_header_labels(
+    Variable = "Feature",
+    Mean     = "Mean",
+    Median   = "Median",
+    Min      = "Min",
+    Max      = "Max",
+    IQR      = "Interquartile Range"
+  ) |>
+  theme_vanilla() |>
+  width(j = 1, width = 1.5) |>  # Manually set column widths
+  width(j = 2:6, width = 1.2)   # Adjust other columns
+```
+
+
+```{r possum-summary-table2, eval=T}
+possum_summary_ft
+```
+
+```{r possum-histograms, eval=T}
+
+pnumerics      <- possums   |>   select(where(is.numeric))
+pnumeric_names <- pnumerics |>   names()
+
+# Convert possums dataset to long format for faceting
+possums_long <- possums |>
+  pivot_longer(cols = all_of(pnumeric_names), names_to = "Variable", values_to = "Value") |>
+  drop_na(Value)  # Remove missing values to avoid warnings
+
+# Create histogram and density plots
+phistograms <- ggplot(possums_long, aes(x = Value)) +
+  geom_histogram(aes(y = after_stat(density)), bins = 30, fill = "lightblue", color = "black", alpha = 0.7) +
+  geom_density(color = "red", linewidth = 1) +  # Overlay density curve
+  facet_wrap(~ Variable, scales = "free", ncol = 3) +  # Facet by variable
+  theme_minimal() +
+  labs(title = "Histograms and Density Plots of Numeric Features",
+       x = "Value",
+       y = "Density")
+
+# Print plot
+phistograms
+
+```
+
+```{r possum-correlation, eval=T}
+# Select only numeric features
+
+
+# Compute Pearson correlation matrix
+p_matrix1 <- cor(pnumerics, use = "pairwise.complete.obs")
+
+# Convert correlation matrix to long format for better visualization
+correlation_long <- p_matrix1 |> 
+  as.data.frame() |> 
+  rownames_to_column(var = "Variable1") |> 
+  pivot_longer(cols = -Variable1, names_to = "Variable2", values_to = "Correlation")
+
+# Create a correlation heatmap using ggplot
+p_correlation_heatmap <- ggplot(correlation_long, aes(x = Variable1, y = Variable2, fill = Correlation)) +
+  geom_tile(color = "white") +
+  scale_fill_gradient2(low = "blue", mid = "white", high = "red", midpoint = 0) +
+  theme_minimal() +
+  labs(title = "Correlation Matrix Heatmap", fill = "Correlation") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+# Print heatmap
+p_correlation_heatmap
+```
+
 Plotting age vs Total Length (totlngth)
 
-```{r possum-scatterplot1, eval=F}
+```{r possum-scatterplot1, eval=T}
 # visualise age vs totlnght
 # assuming length is in mm and age is in years
 #
 pPlot_age_v_lngth <- ggplot(possums, aes(x = totlngth, y = age)) +
   geom_point(color = "blue", alpha = 0.6) +  # Scatter plot with transparency
   geom_smooth(method = "lm", color = "red", se = FALSE) +  # Linear regression line
-  # ggtitle("Age vs. Total Length") +
   xlim(73, 96) +  # Set x-axis limits
   xlab("Total Length (mm)") +
   ylab("Age (years)") +
   theme_minimal()
 ```
 
-```{r , eval=F}
+```{r format-possum-scatter, include=F}
 ggsave("possum-scatter-plot.png", pPlot_age_v_lngth, width = 6, height = 4, dpi = 300)  # Adjust width & height
 
 pPlot_age_v_lngth <- "
@@ -84,7 +173,7 @@ pPlot_age_v_lngth <- "
 \newpage
 An initial scatter plot shows  the raw data directly from the CSV file. It is a plot of age (years) vs total body length (mm) of the possums.
 
-```{r possum-scatterplot2, eval=F}
+```{r possum-scatterplot2, eval=T}
 knitr::asis_output(pPlot_age_v_lngth)
 ```
 
@@ -93,7 +182,7 @@ There is a **weak positive correlation**  seen by the regression line. This sugg
 Additionally, the data points are widely spread, particularly at higher total lengths, suggesting that total length alone is not be a strong predictor of age. There is a high density of points is between 80–95 mm in total length. There is a high density of points between 1–6 years in age. This indicates that most possums fall within this range. 
 
 \newpage
-```{r possum-boxplots1 , eval=F}
+```{r possum-boxplots1 , eval=T}
 pbox_age <- ggplot(possums, aes(x = "", y = age)) + 
   geom_boxplot(fill = "lightblue", outlier.colour = "red", outlier.shape = 16, outlier.size = 3) + 
   labs(title = "Box Plot of Age (Years)", y = "Age (Years)", x = "") + 
@@ -106,15 +195,14 @@ pbox_lngth <- ggplot(possums, aes(x = "", y = totlngth)) +
   labs(title = "Box Plot of Total Length (mm)", y = "Total Length (mm)", x = "") + 
   theme_minimal()
 
-
 ```
 
-```{r boxplot1-print, eval=F}
+```{r format-boxplot1, include=F}
 
 ggsave("boxplot_age.png", plot = pbox_age,   width = 3, height = 4)
 ggsave("pbox_lngth.png",  plot = pbox_lngth, width = 3, height = 4)
 
-pboxes <- paste("
+pboxes <- "
 \\begin{figure}[htbp]
     \\centering
     \\makebox[0.65\\textwidth]{  % Adjust overall width
@@ -132,11 +220,11 @@ pboxes <- paste("
         \\end{minipage}
     }
 \\end{figure}
-", sep = "\n")
+"
 
 ```
 
-```{r , eval=F}
+```{r , eval=T}
 knitr::asis_output(pboxes)
 ```
 
@@ -162,7 +250,7 @@ In preperation for splitting the data and ensuring stratification, missing data 
 We imputed the data rather than removed it due to the small number of data rows and the large number of predictors. In particular, **age** could not be left with `NA`.
 
 
-```{r possums-convert1 , eval=F}
+```{r possums-convert1 , eval=T}
 set.seed(82171165) 
 
 #  drop case - as this is just a numeric row index
@@ -198,9 +286,7 @@ possums_1 <- possums_1 |> relocate(age, .after = last_col())
 ```
 \newpage
 
-```{r format_comparison , eval=F}
-
-
+```{r format-comparison , include=F}
 new_colnames <- c( # from assignment
   "sex (female=1)", "head length", "skull length", "body length", 
   "tail length", "foot length", "ear conch length", "eye size", 
@@ -235,7 +321,7 @@ save_as_image(pskim_ft1, path = "pskim_ft1.png")
 save_as_image(pskim_ft,  path = "pskim_ft.png")
 file.exists("pskim_ft.png")
 file.exists("pskim_ft1.png")
-pcompare_tables <- paste("
+pcompare_tables <- "
 \\begin{figure}[htbp]
     \\centering
     \\begin{minipage}[t]{0.45\\textwidth}
@@ -250,12 +336,12 @@ pcompare_tables <- paste("
         \\captionof{figure}{\\texttt{possums\\_1}}
     \\end{minipage}
 \\end{figure}
-", sep = "\n")
+"
 
 ```
 
 
-```{r print-tables, eval=F}
+```{r print-tables, eval=T}
 knitr::asis_output(pcompare_tables)
 
 ```
@@ -267,7 +353,7 @@ The dataset is split with a focus on stratification with 80% Training
 (**possum_2**), 10% Test(**pTestDf**), used to evaluate models, and 
 10% Validation (**pValidateDf**), used for final model selection and assessment
 
-```{r possum-data-splitting , eval=F}
+```{r possum-data-splitting , eval=T}
 
 # data-splitting is performed before cleaning predictors 
 # to simulate real-world events. 
@@ -285,7 +371,7 @@ pValidateDf <- pTempDf[-pTestIdx, ]
 
 ```
 
-```{r format-split, eval=F}
+```{r format-split, eval=T}
 total_rows <- nrow(possums_1)
 
 #  dataframe
@@ -313,11 +399,10 @@ psplit_ft <- flextable(psplit_df) |>
   autofit()  # fit the widths setting
 
 ```
-\newpage
 
 While stratification helps maintain representative samples, the constraints of whole-number rows and maintaining class balance mean that the exact number of rows in each split may differ slightly from expected percentages. This explains why possums_2, pTestDf, and pValidateDf did not match the precise 80-10-10 split but were close enough to maintain the stratified structure.
 
-```{r print-split, eval=F}
+```{r print-split, eval=T}
 knitr::knit_print(psplit_ft, output_format = "latex")
 ```
 
@@ -325,7 +410,7 @@ knitr::knit_print(psplit_ft, output_format = "latex")
 
 
 
-```{r models-evaluation, eval=F}
+```{r models-evaluation, eval=T}
 
 
 # Define all possible predictor combinations
@@ -362,7 +447,7 @@ print(pMSE_validate)
 ```
 
 
-```{r possum-model-selection,     eval=F}
+```{r possum-model-selection,     eval=T}
 
 # Define all possible predictor combinations
 #
@@ -408,7 +493,7 @@ print(pMSE_validate)
 ```
 
 
-```{r possum-model-selection2,  results='asis' , eval=F}
+```{r possum-model-selection2,  results='asis' , eval=T}
 # Print Metrics
 metrics_df <- 0
 metrics_df <- data.frame(
@@ -445,7 +530,7 @@ summary_ft <- flextable(summary_mat) |>
 ```
 
 \newpage 
-```{r possum-model-selection21, eval=F}
+```{r possum-model-selection21, eval=T}
 # Print the formatted table
 #summary_ft
 ```
@@ -455,14 +540,14 @@ summary_ft <- flextable(summary_mat) |>
 
 \newpage
 ## Feature Selection and Model Training
-```{r, eval=F}
+```{r, eval=T}
 
 
 ```
 
 ## Model Evaluation
 
-```{r, eval=F}
+```{r, eval=T}
 # Residuals vs. Leverage plot shows potential high-leverage points, which may be influencing the model too much
 
 # Compute evaluation metrics
@@ -470,7 +555,7 @@ summary_ft <- flextable(summary_mat) |>
 
 ## Further Exploration
 
-```{r, eval=F}
+```{r, eval=T}
 # Additional analysis or research questions 
 #[204]
 ```

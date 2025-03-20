@@ -54,15 +54,9 @@ for (pkg in required_packages) {
 
 conflict_prefer("filter", "dplyr"); conflict_prefer("select", "dplyr")
 
-knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE, width = 70)
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE, width = 70, cache=FALSE)
 
 ```
-
-
-
-
-
-
 
 ```{r common-functions, eval=T, include=F}
 # Load and preprocess dataset
@@ -169,6 +163,15 @@ file.exists("../code/question3.Rmd")
 load_datasets() 
 
 ```
+
+Question 3 is out of order to resolve conflicts with the response to Question 1 or Question 2. We had chosen early on that each person would deal with one question. Unfortunately Question 3 took the brunt of any quirky results of the other questions. To resolve this, I mave moved Question 3 to the front. 
+
+# Predicting Possum Age
+
+```{r load-question3, child="../code/question3.Rmd", eval=T,cache=FALSE}
+```
+
+
 \newpage
 # Braking Distance
 
@@ -181,11 +184,6 @@ load_datasets()
 ```{r load-question2, child="../code/question2.Rmd", eval=T}
 ```
 
-\newpage
-# Predicting Possum Age
-
-```{r load-question3, child="../code/question3.Rmd", eval=T}
-```
 
 \newpage
 # Appendix
