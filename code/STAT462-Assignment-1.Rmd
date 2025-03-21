@@ -32,17 +32,13 @@ header-includes:
 options(repos = c(CRAN = "https://cran.stat.auckland.ac.nz/"))
 
 # Required packages
-
-
+#
 required_packages <- c("conflicted", "ggplot2", "dplyr", "class",  
                        "tidyverse", "flextable", "skimr", "GGally",
                        "MASS", "car", "formatR", "mice","tinytex" ,
                        "caret", "gridExtra", "fastDummies" ,"leaps",
                        "extrafont",  "officer", "Metrics","glmnet" ,
                        "knitr", "kableExtra", "cowplot"  ) 
-
-
-
 
 # Install and load missing packages in a single step and quietly
 for (pkg in required_packages) {
@@ -71,7 +67,6 @@ load_datasets <- function(zip_path = "../data/datasets.zip") {
     stop(paste(zip_path, "not found."))
   }
 }
-
 
 # This function is used in the question to make income_1 from income_0
 #

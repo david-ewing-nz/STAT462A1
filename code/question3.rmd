@@ -188,8 +188,12 @@ possums_1$sex <- as.numeric(possums_0$sex == "f")            #  true if female
 
 # relocate age to last for analysis 
 #
-possums_1 <- possums_1 |> relocate(age, .after = last_col()) 
-
+possums_1       <- possums_1 |> relocate(age, .after = last_col()) 
+psite_names     <- grep("^site", names(possums_1), value = TRUE)
+pdummy_names    <- c(psite_names, "sex")
+pdummies        <- possums_1 |> select(pdummy_names)
+pnumerics       <- possums_1 |> select(-all_of(pdummy_names))
+pnumeric_names  <- pnumerics |> names()
 ```
 \newpage
 
@@ -254,6 +258,28 @@ knitr::asis_output(pcompare_tables)
 ```
 
 
+
+
+We begin the Exploratory Data Analysis on the cleaned dataset. This is to better understand the distribution and characteristics of its features. The table below is the key summary statistics, and includes the mean, median, minimum, maximum, and interquartile range (IQR) for each variable. 
+
+
+
+
+
+
+
+
+
+
+Search
+
+
+ChatGPT can make mistakes. OpenAI doesn't use Industrial Origami Limited workspace data to train its models.
+?
+
+
+
+
 ```{r possum-summary-stats, eval=T}
 # Compute summary statistics for all numeric features
 possum_summary <- possums_1  |>
@@ -279,7 +305,11 @@ possum_summary <- possum_summary |>
 
 ```{r possum-summary-table, include=F}
 # Convert to a flextable for better display
-possum_summary_ft <-  flextable(possum_summary) |>
+possum_summary <- possum_summary |> 
+  mutate(Mean = round(Mean, 2))
+
+# Convert to a flextable for better display
+possum_summary_ft <- flextable(possum_summary) |>
   set_header_labels(
     Variable = "Feature",
     Mean     = "Mean",
@@ -289,8 +319,10 @@ possum_summary_ft <-  flextable(possum_summary) |>
     IQR      = "Interquartile Range"
   ) |>
   theme_vanilla() |>
-  width(j = 1, width = 1.5) |>  # Manually set column widths
-  width(j = 2:6, width = 1.2)   # Adjust other columns
+  width(j = 1, width = 1) |>  # Manually set column widths
+  width(j = 2:6, width = 1)   # Adjust other columns
+
+
 ```
 
 
@@ -298,20 +330,22 @@ possum_summary_ft <-  flextable(possum_summary) |>
 possum_summary_ft
 ```
 
+the distribution of numerical features is seen with histograms.  By examining histograms, we can see if the data includes histogr extreme values skewnes or outliers.  we can determin whether transformationsto improve normality and performance.
+
+
+
+
 ```{r possum-histograms, eval=T}
 
 # Select only numeric features excluding one-hot encoded variables and sex
-one_hot_columns <- grep("^site", names(possums_1), value = TRUE)
-pnumerics <- possums_1 |> select(where(is.numeric), -all_of(one_hot_columns), -sex)
-pnumeric_names <- pnumerics |> names()
-
-# Convert possums dataset to long format for faceting
-possums_long <- possums_1 |>
-  pivot_longer(cols = all_of(pnumeric_names), names_to = "Variable", values_to = "Value") |>
-  drop_na(Value)  # Remove missing values to avoid warnings
+possums_long_col <- pivot_longer(pnumerics,
+                                 cols = all_of(pnumeric_names), 
+                                 names_to = "Variable", 
+                                 values_to = "Value") |> drop_na(Value) 
 
 # Create histogram and density plots
-phistograms <- ggplot(possums_long, aes(x = Value)) +
+#
+phistograms <- ggplot(possums_long_col, aes(x = Value)) +
   geom_histogram(aes(y = after_stat(density)), bins = 30, fill = "lightblue", color = "black", alpha = 0.7) +
   geom_density(color = "red", linewidth = 1) +  # Overlay density curve
   facet_wrap(~ Variable, scales = "free", ncol = 3) +  # Facet by variable
@@ -323,65 +357,34 @@ phistograms <- ggplot(possums_long, aes(x = Value)) +
 # Print plot
 phistograms
 ```
-```{r possum-correlation-looped, eval=T}
-# Define filter conditions: sex = 1, sex = 0, and no filter
-sex_conditions <- list(
-  "Sex = 1 (Female)" = possums_1 |> filter(sex == 1),
-  "Sex = 0 (Male)" = possums_1 |> filter(sex == 0),
-  "All Data (Ignoring Sex)" = possums_1  # No filtering
-)
+The histograms and density plots illustrate the distribution of numeric features in the dataset, excluding one-hot encoded categorical variables:
+ - variables, such as belly, , and skullw, exhibit approximately normal distributions
+ - earcconch footlngth tail and totallngth have a bimodal compoent
+ - totlngth, and taill, display notable deviations from normality. 
+ - The age distribution is right-skewed, with a higher concentration of values at the lower end . 
+ - totlngth and taill exhibit slight skewness and potential multimodality, 
 
-# Loop through each condition
-for (condition_name in names(sex_conditions)) {
-  
-  # Select appropriate dataset based on condition
-  subset_data <- sex_conditions[[condition_name]]
-  
-  # Select numeric features, excluding one-hot site variables
-  pnumerics <- subset_data |> 
-    select(where(is.numeric), -all_of(one_hot_columns), -sex)
-  
-  # Compute Pearson correlation matrix
-  p_matrix <- cor(pnumerics, use = "pairwise.complete.obs")
-  
-  # Convert correlation matrix to long format
-  correlation_long <- as.data.frame(p_matrix) |>
-    rownames_to_column(var = "Variable1") |>
-    pivot_longer(cols = -Variable1, names_to = "Variable2", values_to = "Correlation")
-  
-  # Identify highly correlated predictor pairs (|correlation| > 0.8)
-  high_correlation <- correlation_long |>
-    filter(abs(Correlation) > 0.8 & Variable1 != Variable2)
-  
-  # Print highly correlated predictors
-  print(paste("Highly correlated predictors for:", condition_name))
-  print(high_correlation)
-  
-  # Keep only the lower triangle of the correlation matrix
-  to_keep <- correlation_long |> 
-    rowwise() |> 
-    filter(Variable1 >= Variable2)
-  
-  # Create a correlation heatmap
-  p_correlation_heatmap <- ggplot(to_keep, aes(x = Variable1, y = Variable2, fill = Correlation)) +
-    geom_tile(color = "white") +
-    geom_text(aes(label = round(Correlation, 2)), color = "black", size = 3) +
-    scale_fill_gradient2(low = "blue", mid = "white", high = "red", midpoint = 0) +
-    theme_minimal() +
-    labs(title = paste("Correlation Heatmap for", condition_name), fill = "Correlation") +
-    theme(axis.text.x = element_text(angle = 45, hjust = 1))
-  
-  # Print heatmap
-  print(p_correlation_heatmap)
-}
-```
+ The variability in density patterns suggests that some features will require standardisation/scaling to ensure comparability when used. 
+ 
+ 
+ 
+ we will now assess correlations between numerical features. Strong correlations between predictors can indicate multicollinearity,  distort regression coefficients,  and reduce model. reliability. 
+
+When analysing the relationships between numerical predictors, it is important to determine whether the correlations differ depending on sex. By first filtering the dataset into subsets for males and females separately, we can compute distinct correlation matrices for each group. This approach allows us to identify whether the strength and direction of relationships between variables vary based on sex, which could influence the final model selection and interpretation.
+
+Despite this filtering, the correlation calculation itself is performed without including sex as a variable. The correlation matrix is generated using only the continuous numerical predictors, ensuring that the analysis remains focused on the underlying relationships between these features. This decision is made to avoid introducing unnecessary categorical influences into a metric designed specifically for continuous data.
+
+Once the correlation matrix is created for each subset, it is converted into a long format. This transformation simplifies the process of identifying highly correlated predictor pairs and allows for easier filtering and visualisation. While the long-format table itself does not explicitly track which subset (male, female, or full dataset) the correlations were derived from, maintaining separate outputs for each ensures clarity in analysis.
+
+This structured approach ensures that we can compare correlations across sexes while keeping the analysis streamlined and focused on numerical relationships. It also helps in detecting potential multicollinearity issues within each subset, which is crucial for building a robust predictive model.
+
+The correlation matix is augmented with a heatmap d to provide a clear visual representation of these relationships. 
+ 
+
 
 ```{r possum-correlation, eval=T}
 # Select only numeric features excluding one-hot variables and sex
-pnumerics <- possums_1 |>
-  select(where(is.numeric), -all_of(one_hot_columns), -sex)
 
-# Compute Pearson correlation matrix
 p_matrix1 <- cor(pnumerics, use = "pairwise.complete.obs")
 
 # Convert correlation matrix to long format for better visualization
@@ -396,18 +399,16 @@ high_correlation <- correlation_long |>
 # Print highly correlated predictors
 print(high_correlation)
 
-# Keep only the lower triangle of the correlation matrix
-to_keep <- correlation_long |> 
-  rowwise() |> 
-  filter(Variable1 >= Variable2)
+# Keep only the lower triangle (e.g. Variable1 >= Variable2) of the correlation matrix
+to_keep <- rowwise(correlation_long) |>  filter(Variable1 >= Variable2)
 
-# Create a correlation heatmap with numeric values on the diagonal
+# heatmap of to_keep
 p_correlation_heatmap <- ggplot(to_keep, aes(x = Variable1, y = Variable2, fill = Correlation)) +
   geom_tile(color = "white") +
   geom_text(aes(label = round(Correlation, 2)), color = "black", size = 3) +  # Show numeric values
   scale_fill_gradient2(low = "blue", mid = "white", high = "red", midpoint = 0) +
   theme_minimal() +
-  labs(title = "Lower Triangle Correlation Matrix Heatmap", fill = "Correlation") +
+  labs(title = "Lower Triangle Correlation Matrix\nof All Data (Ignoring Sex)", fill = "Correlation") +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
 # Print heatmap
@@ -418,10 +419,18 @@ p_correlation_heatmap
 
 ```{r possum-scatterplots, eval=T}
 # Use pnumeric_names, which already excludes one-hot columns and sex
-possums_long_scatter <- possums_1 |>
-  pivot_longer(cols = all_of(pnumeric_names), names_to = "Predictor", values_to = "Value") |>  
-  mutate(age = rep(possums_1$age, length(pnumeric_names))) |>  # Restore 'age' column
+possums_long_scatter <- pivot_longer(pnumerics,
+                                     cols = all_of(pnumeric_names),
+                                     names_to = "Predictor",
+                                     values_to = "Value") |>  
+  mutate(age = rep(possums_1$age,
+                   length(pnumeric_names))) |>  # Restore 'age' column
   drop_na(Value, age)  # Remove missing values
+
+#possums_long_scatter <- possums_1 |>
+#  pivot_longer(cols = all_of(pnumeric_names), names_to = "Predictor", values_to = "Value") |>  
+#  mutate(age = rep(possums_1$age, length(pnumeric_names))) |>  # Restore 'age' column
+#  drop_na(Value, age)  # Remove missing values
 
 # Confirm 'age' exists
 print(colnames(possums_long_scatter))  # Debugging step
@@ -505,19 +514,18 @@ While stratification helps maintain representative samples, the constraints of w
 knitr::knit_print(psplit_ft, output_format = "latex")
 ```
 
-```{r possum-correlation-grouped1, eval=TRUE}
+```{r possum-correlation-grouped1, eval=FALSE}
 #
-# THIS CHUNK WAS EXPLORATORY AND IS NOT USED
+# THIS CHUNK IS USED?
 #
-# Define categorical variables (one-hot site variables and sex)
 #
-categorical_vars <- c(one_hot_columns, "sex")
+#
+
 
 # Function to generate correlation matrix and heatmap for a subset
 generate_correlation_heatmap <- function(subset_name, subset_data) {
   # Select only numeric features excluding one-hot variables and sex
-  pnumerics <- subset_data |>
-    select(where(is.numeric), -all_of(one_hot_columns), -sex)
+  
 
   # Compute Pearson correlation matrix
   p_matrix <- cor(pnumerics, use = "pairwise.complete.obs")
@@ -554,7 +562,7 @@ generate_correlation_heatmap <- function(subset_name, subset_data) {
 }
 
 # Loop through each one-hot site variable and sex
-for (cat_var in categorical_vars) {
+for (cat_var in pdummy_names) {
   unique_vals <- unique(possums_1[[cat_var]])  # Unique values (0 or 1 for one-hot, 0/1 for sex)
   
   for (val in unique_vals) {
@@ -570,83 +578,6 @@ for (cat_var in categorical_vars) {
   }
 }
 ```
-
-```{r possum-correlation-grouped2, eval=TRUE}
-#
-# THIS CHUNK WAS EXPLORATORY AND IS NOT USED
-#
-# Define categorical variables
-site_columns <- one_hot_columns  # One-hot site columns
-sex_values <- c(0, 1)            # Values for sex
-
-# Function to generate correlation matrix and heatmap for a subset
-generate_correlation_heatmap <- function(subset_name, subset_data) {
-  # Select numeric features excluding categorical variables
-  pnumerics <- subset_data |>
-    select(where(is.numeric), -all_of(site_columns), -sex)
-
-  # Compute Pearson correlation matrix
-  p_matrix <- cor(pnumerics, use = "pairwise.complete.obs")
-
-  # Convert correlation matrix to long format
-  correlation_long <- as.data.frame(p_matrix) |>
-    rownames_to_column(var = "Variable1") |>
-    pivot_longer(cols = -Variable1, names_to = "Variable2", values_to = "Correlation")
-
-  # Identify highly correlated predictor pairs (|correlation| > 0.8)
-  high_correlation <- correlation_long |>
-    filter(abs(Correlation) > 0.8 & Variable1 != Variable2)
-
-  # Print highly correlated predictors
-  print(paste("Highly correlated predictors for", subset_name))
-  print(high_correlation)
-
-  # Keep only the lower triangle of the correlation matrix
-  to_keep <- correlation_long |> 
-    rowwise() |> 
-    filter(Variable1 >= Variable2)
-
-  # Create a correlation heatmap
-  p_correlation_heatmap <- ggplot(to_keep, aes(x = Variable1, y = Variable2, fill = Correlation)) +
-    geom_tile(color = "white") +
-    geom_text(aes(label = round(Correlation, 2)), color = "black", size = 3) +
-    scale_fill_gradient2(low = "blue", mid = "white", high = "red", midpoint = 0) +
-    theme_minimal() +
-    labs(title = paste("Correlation Heatmap for", subset_name), fill = "Correlation") +
-    theme(axis.text.x = element_text(angle = 45, hjust = 1))
-
-  # Print heatmap
-  print(p_correlation_heatmap)
-}
-
-# Loop through sex values (0 = Male, 1 = Female)
-for (sex_val in sex_values) {
-  
-  # Loop through site variables, creating one plot per site
-  for (site_var in site_columns) {
-    subset_name <- paste("Site:", site_var, "= 1 | Sex =", sex_val)
-    subset_data <- possums_1 |> filter(!!sym(site_var) == 1, sex == sex_val)
-
-    # Ensure sufficient data points before computing correlation
-    if (nrow(subset_data) > 5) {
-      generate_correlation_heatmap(subset_name, subset_data)
-    } else {
-      print(paste("Skipping", subset_name, "- Not enough data points"))
-    }
-  }
-  
-  # Create an additional graph for "No Site" (all sites = 0)
-  subset_name <- paste("Site: None (All 0s) | Sex =", sex_val)
-  subset_data <- possums_1 %>% filter(rowSums(select(., all_of(site_columns))) == 0, sex == sex_val)
-
-  if (nrow(subset_data) > 5) {
-    generate_correlation_heatmap(subset_name, subset_data)
-  } else {
-    print(paste("Skipping", subset_name, "- Not enough data points"))
-  }
-}
-```
-
 
 ```{r ridge-regression, eval=T}
 pridge_x <- as.matrix(possums_2 %>% select(-age))  # Exclude age 
@@ -704,8 +635,7 @@ print(pridge_coeff_df)
 
 
 ```
-```{r models-evaluation, eval=F}
-```
+
 
 
 ```{r ridge-feature-selection, eval=T}
@@ -722,8 +652,9 @@ pridge_coeff_df <- pridge_coeff_df %>%
 # Remove the intercept term
 pridge_coeff_df <- pridge_coeff_df %>% filter(Predictor != "(Intercept)")
 
-# Select the top predictors (change number as needed, e.g., top 10)
-num_features <- 10  # Adjust as necessary
+# there are 16 possible features
+#
+num_features <- 16   
 top_predictors <- pridge_coeff_df %>% head(num_features) %>% pull(Predictor)
 
 # Construct the final model formula using selected features
@@ -738,48 +669,13 @@ print(paste("Selected Predictors for Final Model:", paste(top_predictors, collap
 
 ```
 
-```{r models-evaluation, eval=F}
-
-
-# Define all possible predictor combinations
-#
-
-
-# Identify dummy cols
-psite_cols <- grep("^site", names(possums_2), value = TRUE)
-
-# all predictors excluding age, sex, and  dummies
-#
-predictors    <- names(possums_2)[!names(possums_2) %in% c("age", "sex", psite_cols)]
-predictors_2  <- names(possums_2)
-possum_models <- regsubsets(age ~ ., data = possums_2, nvmax = 256)  # Increase nvmax
-
-# Evaluate models on validation set
-pmodel_summary <- summary(possum_models)
-pmodel_idx <- which.min(pmodel_summary$bic) # Select best model based on BIC (bayesian)
-pmodel_predictors <- names(which(pmodel_summary$which[pmodel_idx, ] == TRUE))[-1]  # Extract best predictors
-
-# Construct formula for the best model
-pmodel_formula <- as.formula(paste("age ~", paste(pmodel_predictors, collapse = " + ")))
-
-# Fit the best model
-plm <- lm(pmodel_formula, data = possums_2)
-
-# Evaluate on validation set
-preds <- predict(plm, newdata = pValidateDf)
-pMSE_validate <- mean((pValidateDf$age - preds)^2)
-
-# Print MSE
-print(pMSE_validate)
- 
-```
 
 
 ```{r possum-model-selection,     eval=F}
 
 # Define all possible predictor combinations
 #
-psite_cols <- grep("^site", names(possums_2), value = TRUE)
+#psite_cols <- grep("^site", names(possums_2), value = TRUE)
 
 # Exclude age, sex, and one-hot encoded site variables
 #
