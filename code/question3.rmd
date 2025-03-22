@@ -1,6 +1,9 @@
 
 # ---------------------------
-```{r echo=F}
+```{r eval=T}
+
+# LIST CHUNCK HEADER OPTIONS
+#
 chunk_options_df <- data.frame(
   Option = c("echo=TRUE (default)", "echo=FALSE", "eval=FALSE", "include=FALSE", 'results="hide"'),
   Code_Displayed = c("Yes", "No", "Yes", "No", "Yes"),
@@ -114,13 +117,13 @@ pboxes <- "
     \\centering
     \\makebox[0.65\\textwidth]{  % Adjust overall width
   
-        \\begin{minipage}[t]{0.30\\textwidth}
+        \\begin{minipage}[t]{0.35\\textwidth}
             \\centering
             \\includegraphics[width=\\textwidth]{boxplot_age.png}   \
             \\caption{Age}
         \\end{minipage}
         \\hspace{10pt}  % Adjust horizontal spacing
-        \\begin{minipage}[t]{0.30\\textwidth}
+        \\begin{minipage}[t]{0.35\\textwidth}
             \\centering
             \\includegraphics[width=\\textwidth]{pbox_lngth.png}
             \\caption{Total Length}
@@ -140,7 +143,12 @@ Outliers are present, particularly possums older than 5 years, which will requir
 
 The data is raw and unprocessed. Inconsistencies and/or these outliers may be affecting the results. Additional Data cleaning and Analysis is required. As this is only one predictor. Others win need to be explored to build a model that will confidently predict age. 
 
+\newpage 
 
+
+Histograms and density plots illustrate the spread and shape of each variable. Features such as belly girth and skull width appear to follow a normal distribution, while ear conch length and foot length exhibit bimodal characteristics. The age distribution is right-skewed, indicating that transformation or non-linear modelling approaches may be required.
+
+The presence of extreme values in variables such as total length and tail length suggests that scaling or outlier treatment may be necessary to ensure the stability of regression models.
 
 
 ### 2a. Dropping Unnecessary Columns
@@ -257,28 +265,7 @@ knitr::asis_output(pcompare_tables)
 
 ```
 
-
-
-
 We begin the Exploratory Data Analysis on the cleaned dataset. This is to better understand the distribution and characteristics of its features. The table below is the key summary statistics, and includes the mean, median, minimum, maximum, and interquartile range (IQR) for each variable. 
-
-
-
-
-
-
-
-
-
-
-Search
-
-
-ChatGPT can make mistakes. OpenAI doesn't use Industrial Origami Limited workspace data to train its models.
-?
-
-
-
 
 ```{r possum-summary-stats, eval=T}
 # Compute summary statistics for all numeric features
@@ -297,19 +284,16 @@ possum_summary <- possums_1  |>
     )
   )
 
-# Reshape the summary statistics into a tidy format
-possum_summary <- possum_summary |>
-  pivot_longer(cols = everything(), names_to = c("Variable", ".value"), names_sep = "_")
 ```
 
 
-```{r possum-summary-table, include=F}
-# Convert to a flextable for better display
-possum_summary <- possum_summary |> 
-  mutate(Mean = round(Mean, 2))
+```{r format-possum-summary-table, include=F}
 
-# Convert to a flextable for better display
-possum_summary_ft <- flextable(possum_summary) |>
+possum_summary    <- possum_summary |> pivot_longer(cols      = everything(),
+                                                 names_to  = c("Variable", ".value"),
+                                                 names_sep = "_")
+possum_summary    <- mutate(possum_summary,Mean = round(Mean, 2))
+possum_summary_ft <- flextable(possum_summary) |> #  flextable to display
   set_header_labels(
     Variable = "Feature",
     Mean     = "Mean",
@@ -322,7 +306,6 @@ possum_summary_ft <- flextable(possum_summary) |>
   width(j = 1, width = 1) |>  # Manually set column widths
   width(j = 2:6, width = 1)   # Adjust other columns
 
-
 ```
 
 
@@ -330,7 +313,7 @@ possum_summary_ft <- flextable(possum_summary) |>
 possum_summary_ft
 ```
 
-the distribution of numerical features is seen with histograms.  By examining histograms, we can see if the data includes histogr extreme values skewnes or outliers.  we can determin whether transformationsto improve normality and performance.
+Histograms will now allow us to examine the distribution of numerical features, identifying skewness, outliers, and potential transformations needed for improved model performance.Transformations may be necessary to improve normality and stabilise variance.
 
 
 
@@ -357,88 +340,108 @@ phistograms <- ggplot(possums_long_col, aes(x = Value)) +
 # Print plot
 phistograms
 ```
-The histograms and density plots illustrate the distribution of numeric features in the dataset, excluding one-hot encoded categorical variables:
- - variables, such as belly, , and skullw, exhibit approximately normal distributions
- - earcconch footlngth tail and totallngth have a bimodal compoent
- - totlngth, and taill, display notable deviations from normality. 
- - The age distribution is right-skewed, with a higher concentration of values at the lower end . 
- - totlngth and taill exhibit slight skewness and potential multimodality, 
+## Exploratory Data Analysis (EDA)
 
- The variability in density patterns suggests that some features will require standardisation/scaling to ensure comparability when used. 
+Having preprocessed the dataset by handling missing values, encoding categorical variables, and standardising features, we now explore the numerical distributions. The goal is to identify potential transformations required to normalise skewed distributions and detect multicollinearity among predictors.
+
+Histograms and density plots illustrate the spread and shape of each variable. Features such as belly girth and skull width appear to follow a normal distribution, while ear conch length and foot length exhibit bimodal characteristics. The age distribution is right-skewed, indicating that transformation or non-linear modelling approaches may be required.
+
+The presence of extreme values in variables such as total length and tail length suggests that scaling or outlier treatment may be necessary to ensure the stability of regression models.
  
  
- 
- we will now assess correlations between numerical features. Strong correlations between predictors can indicate multicollinearity,  distort regression coefficients,  and reduce model. reliability. 
+Before training the model, we identify the most important predictors using Ridge Regression. This method penalises large coefficients, reducing multicollinearity and improving generalisability. The top features selected will form the basis for our final predictive model.
 
 When analysing the relationships between numerical predictors, it is important to determine whether the correlations differ depending on sex. By first filtering the dataset into subsets for males and females separately, we can compute distinct correlation matrices for each group. This approach allows us to identify whether the strength and direction of relationships between variables vary based on sex, which could influence the final model selection and interpretation.
 
-Despite this filtering, the correlation calculation itself is performed without including sex as a variable. The correlation matrix is generated using only the continuous numerical predictors, ensuring that the analysis remains focused on the underlying relationships between these features. This decision is made to avoid introducing unnecessary categorical influences into a metric designed specifically for continuous data.
+We stratified by sex, however, the correlation analysis itself does not incorporate sex as a predictor, ensuring that only numerical variables are examined for inter-dependencies.
 
 Once the correlation matrix is created for each subset, it is converted into a long format. This transformation simplifies the process of identifying highly correlated predictor pairs and allows for easier filtering and visualisation. While the long-format table itself does not explicitly track which subset (male, female, or full dataset) the correlations were derived from, maintaining separate outputs for each ensures clarity in analysis.
 
 This structured approach ensures that we can compare correlations across sexes while keeping the analysis streamlined and focused on numerical relationships. It also helps in detecting potential multicollinearity issues within each subset, which is crucial for building a robust predictive model.
 
-The correlation matix is augmented with a heatmap d to provide a clear visual representation of these relationships. 
+The correlation matrix is visualised using a heatmap to highlight potential multicollinearity, where strong correlations (above 0.8) may indicate redundancy among predictors.
  
 
 
-```{r possum-correlation, eval=T}
+```{r possum-correlation2, eval=T}
 # Select only numeric features excluding one-hot variables and sex
 
 p_matrix1 <- cor(pnumerics, use = "pairwise.complete.obs")
-
-# Convert correlation matrix to long format for better visualization
-correlation_long <- as.data.frame(p_matrix1) |>
+pcor_long <- as.data.frame(p_matrix1) |>
   rownames_to_column(var = "Variable1") |>
-  pivot_longer(cols = -Variable1, names_to = "Variable2", values_to = "Correlation")
+  pivot_longer(cols = -Variable1,
+               names_to = "Variable2",
+               values_to = "Correlation")
 
 # Identify highly correlated predictor pairs (|correlation| > 0.8)
-high_correlation <- correlation_long |>
-  filter(abs(Correlation) > 0.8 & Variable1 != Variable2)
+pcor_high <- filter(pcor_long, abs(Correlation) > 0.8 & Variable1 != Variable2)
 
-# Print highly correlated predictors
-print(high_correlation)
+pto_keep <- filter(pcor_long, Variable1 >= Variable2) |> # Keep lower triangle 
+  anti_join(pcor_high, by = c("Variable1", "Variable2")) # remove high correlations
 
-# Keep only the lower triangle (e.g. Variable1 >= Variable2) of the correlation matrix
-to_keep <- rowwise(correlation_long) |>  filter(Variable1 >= Variable2)
 
-# heatmap of to_keep
-p_correlation_heatmap <- ggplot(to_keep, aes(x = Variable1, y = Variable2, fill = Correlation)) +
-  geom_tile(color = "white") +
-  geom_text(aes(label = round(Correlation, 2)), color = "black", size = 3) +  # Show numeric values
-  scale_fill_gradient2(low = "blue", mid = "white", high = "red", midpoint = 0) +
-  theme_minimal() +
-  labs(title = "Lower Triangle Correlation Matrix\nof All Data (Ignoring Sex)", fill = "Correlation") +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+if (nrow(pto_keep) > 0) { # if correlations remain after filtering
 
-# Print heatmap
-p_correlation_heatmap
+  p_correlation_heatmap <- ggplot(pto_keep,             # Create heatmap
+                                  aes(x = Variable1, 
+                                      y = Variable2, 
+                                      fill = Correlation)) +
+    geom_tile(color = "white") +
+    geom_text(aes(label = round(Correlation, 2)), color = "black", size = 3) +
+    scale_fill_gradient2(low = "blue", mid = "white", high = "red", midpoint = 0) +
+    theme_minimal() +
+    labs(title = "Lower Triangle Correlation Matrix\nof All Data (Ignoring Sex)", 
+         fill = "Correlation") +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+  # Save heatmap
+  ggsave("p_correlation_heatmap.png", 
+         p_correlation_heatmap,
+         width = 6, height = 4, dpi = 300, path = getwd())
+  pformat_heatmap <- ""
+  if (!file.exists("p_correlation_heatmap.png")) { 
+    cat("No heatmap file created.") }  
+
+  } else {
+  cat("No correlations remain after filtering high-correlation pairs.")
+  if (file.exists("p_correlation_heatmap.png")) { file.remove("p_correlation_heatmap.png") }
+}
 ```
 
+```{r , include=F}
+    pformat_heatmap <- "\\begin{figure}[H]\n  \\centering\n    
+    \\begin{minipage}{0.7\\textwidth}\n      \\centering\n
+    \\includegraphics[width=\\textwidth]{p_correlation_heatmap.png}\n
+    \\caption{asdf}\n     \\end{minipage}\n\\end{figure}"
+```
 
+```{r}
+ knitr::asis_output(pformat_heatmap)
+
+```
 
 ```{r possum-scatterplots, eval=T}
 
 
-possums_long_scatter <- pivot_longer(pnumerics,
-                                     cols = all_of(pnumeric_names),
-                                     names_to = "Predictor",
-                                     values_to = "Value") |>  
+pscatter_lcol <- pivot_longer(pnumerics,
+                             cols = all_of(pnumeric_names),
+                             names_to = "Predictor",
+                             values_to = "Value") |>  
   mutate(age = rep(possums_1$age,
-                   length(pnumeric_names))) |>  # Restore 'age' column
+                   length(pnumeric_names))) #|>  # Restore 'age' column
 
 
-#possums_long_scatter <- possums_1 |>
-#  pivot_longer(cols = all_of(pnumeric_names), names_to = "Predictor", values_to = "Value") |>  
-#  mutate(age = rep(possums_1$age, length(pnumeric_names))) |>  # Restore 'age' column
-#  drop_na(Value, age)  # Remove missing values
+possums_long_scatter <- possums_1 |>
+  pivot_longer(cols = all_of(pnumeric_names), names_to = "Predictor", values_to = "Value") |>  
+  mutate(age = rep(possums_1$age, length(pnumeric_names))) |>  # Restore 'age' column
+  drop_na(Value, age)  # Remove missing values
 
 # Confirm 'age' exists
-print(colnames(possums_long_scatter))  # Debugging step
-print(head(possums_long_scatter))  # Debugging step
+print(colnames(pscatter_lcol))  # Debugging step
+print(head(pscatter_lcol))  # Debugging step
 
 # Create scatterplot with facets for different predictors
-p_scatterplots <- ggplot(possums_long_scatter, aes(x = Value, y = age)) +
+p_scatterplots <- ggplot(pscatter_lcol, aes(x = Value, y = age)) +
   geom_point(alpha = 0.6) +  # Scatter points
   geom_smooth(method = "lm", se = FALSE, color = "black", linewidth = 1) +  # Regression line
   facet_wrap(~ Predictor, scales = "free", ncol = 3) +  # Facet by predictor
@@ -480,7 +483,7 @@ pValidateDf <- pTempDf[-pTestIdx, ]
 
 ```
 
-```{r format-split, eval=T}
+```{r format-split, include=F}
 total_rows <- nrow(possums_1)
 
 #  dataframe
@@ -506,87 +509,58 @@ psplit_ft <- flextable(psplit_df) |>
   width(j = 2:4, width = 0.8) |>        # other columns
   set_table_properties(width = 0.3) |>  #  overall  width
   autofit()  # fit the widths setting
-
 ```
 
 While stratification helps maintain representative samples, the constraints of whole-number rows and maintaining class balance mean that the exact number of rows in each split may differ slightly from expected percentages. This explains why possums_2, pTestDf, and pValidateDf did not match the precise 80-10-10 split but were close enough to maintain the stratified structure.
+\newpage 
 
 ```{r print-split, eval=T}
-knitr::knit_print(psplit_ft, output_format = "latex")
+
+print(psplit_ft)
+
 ```
 
-```{r possum-correlation-grouped1, eval=FALSE}
-#
-# THIS CHUNK IS USED?
-#
-#
-#
+
+## Feature Selection and Model Training 
+"Once the most relevant predictors are identified, the dataset has been divided into training, testing, and validation subsets to ensure robust model evaluation. Ridge Regression is trained using cross-validation to optimise performance."
+
+Feature Selection: Ridge Regression
+Given the presence of multicollinearity, we employ Ridge Regression, a penalised regression method that shrinks large coefficients, thereby improving model generalisability. Unlike standard linear regression, Ridge reduces the impact of correlated variables, preventing overfitting.
+
+The Ridge Regression loss function is:
+
+```{r }
 
 
-# Function to generate correlation matrix and heatmap for a subset
-generate_correlation_heatmap <- function(subset_name, subset_data) {
-  # Select only numeric features excluding one-hot variables and sex
-  
 
-  # Compute Pearson correlation matrix
-  p_matrix <- cor(pnumerics, use = "pairwise.complete.obs")
+ploss_equation = "
+\\[
+\\min_{\\beta} \\sum_{i=1}^{n} (y_i - X_i \\beta)^2 + \\lambda \\sum_{j=1}^{p} \\beta_j^2
+\\]
+\\newline
 
-  # Convert correlation matrix to long format for better visualization
-  correlation_long <- as.data.frame(p_matrix) |>
-    rownames_to_column(var = "Variable1") |>
-    pivot_longer(cols = -Variable1, names_to = "Variable2", values_to = "Correlation")
+\\textbf{where:}
+\\begin{itemize}
+  \\item \\( y_i \\) is the dependent variable (age),
+  \\item \\( X_i \\) represents the predictor variables,
+  \\item \\( \\beta_j \\) are the regression coefficients,
+  \\item \\( \\lambda \\) is the penalty parameter.
+\\end{itemize}
+"
 
-  # Identify highly correlated predictor pairs (|correlation| > 0.8)
-  high_correlation <- correlation_long |>
-    filter(abs(Correlation) > 0.8 & Variable1 != Variable2)
-
-  # Print highly correlated predictors
-  print(paste("Highly correlated predictors for", subset_name))
-  print(high_correlation)
-
-  # Keep only the lower triangle of the correlation matrix
-  to_keep <- correlation_long |> 
-    rowwise() |> 
-    filter(Variable1 >= Variable2)
-
-  # Create a correlation heatmap with numeric values on the diagonal
-  p_correlation_heatmap <- ggplot(to_keep, aes(x = Variable1, y = Variable2, fill = Correlation)) +
-    geom_tile(color = "white") +
-    geom_text(aes(label = round(Correlation, 2)), color = "black", size = 3) +  # Show numeric values
-    scale_fill_gradient2(low = "blue", mid = "white", high = "red", midpoint = 0) +
-    theme_minimal() +
-    labs(title = paste("Correlation Matrix Heatmap for", subset_name), fill = "Correlation") +
-    theme(axis.text.x = element_text(angle = 45, hjust = 1))
-
-  # Print heatmap
-  print(p_correlation_heatmap)
-}
-
-# Loop through each one-hot site variable and sex
-for (cat_var in pdummy_names) {
-  unique_vals <- unique(possums_1[[cat_var]])  # Unique values (0 or 1 for one-hot, 0/1 for sex)
-  
-  for (val in unique_vals) {
-    subset_name <- paste(cat_var, "=", val)  # Create name for subset
-    subset_data <- possums_1 |> filter(!!sym(cat_var) == val)  # Filter dataset
-    
-    # Ensure sufficient data points before computing correlation
-    if (nrow(subset_data) > 5) {
-      generate_correlation_heatmap(subset_name, subset_data)
-    } else {
-      print(paste("Skipping", subset_name, "- Not enough data points"))
-    }
-  }
-}
+#knitr::knit_print(ploss_equation, output_format = "latex")
+ knitr::asis_output(ploss_equation)
 ```
+The optimal lambda value is determined via cross-validation, ensuring that the best trade-off between model complexity and predictive accuracy is achieved.
+
 
 ```{r ridge-regression, eval=T}
+#
+#
 pridge_x <- as.matrix(possums_2 %>% select(-age))  # Exclude age 
 pridge_y <- possums_2$age                          # Potential predictors
-
-# Ridge Regression with Cross-Validation
-pridge_cv   <- cv.glmnet(pridge_x, pridge_y, alpha = 0, nfolds = 10)   
-plambda_min <- pridge_cv$lambda.min  # Best lambda
+pridge_cv   <- cv.glmnet(pridge_x, pridge_y, alpha = 0, nfolds = 10)   # Cross-Validation
+plambda_min <- pridge_cv$lambda.min                                    # Best lambda
 
 # Fit final Ridge model
 pridge_model <- glmnet(pridge_x, pridge_y, alpha = 0, lambda = plambda_min) 
@@ -596,7 +570,7 @@ pridge_coeff <- coef(pridge_model)
 pridge_x_val <- as.matrix(pValidateDf %>% select(-age))
 pridge_pred  <- predict(pridge_model, newx = pridge_x_val) 
 
-# Compute evaluation metrics
+#  evaluation metrics
 pridge_mse   <- mean((pValidateDf$age - pridge_pred)^2)   
 pridge_rmse  <- sqrt(pridge_mse)  
 pridge_mae   <- mean(abs(pValidateDf$age - pridge_pred))  
@@ -604,7 +578,7 @@ pridge_rse   <- summary(lm(age ~ ., data = possums_2))$sigma
 pridge_adjR2 <- summary(lm(age ~ ., data = possums_2))$adj.r.squared  
 pridge_aic   <- AIC(lm(age ~ ., data = possums_2))  
 
-# Convert Ridge Regression coefficients to dataframe
+#  Ridge Regression coefficients to dataframe
 pridge_coeff_df <- as.data.frame(as.matrix(pridge_coeff))
 colnames(pridge_coeff_df) <- "Coefficient"
 pridge_coeff_df$Predictor <- rownames(pridge_coeff_df)
@@ -619,9 +593,11 @@ pridge_coeff_df <- pridge_coeff_df %>%
 
 ```
 
-
+## Model Evaluation
 ```{r ridge-model-evaluation, eval=T}
+
 # Print Ridge Regression evaluation metrics
+#
 print(paste("Best Lambda for Ridge:", plambda_min))
 print(paste("Ridge Regression MSE:", pridge_mse))
 print(paste("Ridge Regression RMSE:", pridge_rmse))
@@ -634,13 +610,14 @@ print(paste("Ridge Regression AIC:", pridge_aic))
 print("Top 10 Important Predictors (Ridge Regression):")
 print(pridge_coeff_df)
 
-
 ```
 
 
 
 ```{r ridge-feature-selection, eval=T}
+
 # Convert Ridge Regression coefficients to a dataframe
+#
 pridge_coeff_df <- as.data.frame(as.matrix(pridge_coeff))
 colnames(pridge_coeff_df) <- "Coefficient"
 pridge_coeff_df$Predictor <- rownames(pridge_coeff_df)
@@ -672,7 +649,7 @@ print(paste("Selected Predictors for Final Model:", paste(top_predictors, collap
 
 
 
-```{r possum-model-selection,     eval=F}
+```{r possum-model-selection,     eval=T}
 
 # Define all possible predictor combinations
 #
@@ -680,23 +657,31 @@ print(paste("Selected Predictors for Final Model:", paste(top_predictors, collap
 
 # Exclude age, sex, and one-hot encoded site variables
 #
-predictors  <- names(possums_2)[!names(possums_2) %in% c("age", "sex", psite_cols)]
+
 predictors  <- names(possums_2)
+predictors  <- names(possums_2)[!names(possums_2) %in% c("age", "sex", pdummy_names)]
+
 
 # Perform best subset selection
 #
+
 possum_models <- regsubsets(age ~ ., data = possums_2, nvmax = 256)  # exhaustive but greedy
 
 
 # Evaluate models on validation set
 #
+
 pmodel_summary     <- summary(possum_models)
 
 # Select the best model based on BIC
+#
+
 pmodel_idx <- which.min(pmodel_summary$bic)  
 pmodel_predictors <- names(which(pmodel_summary$which[pmodel_idx, ] == TRUE))[-1]
 
 # Construct formula for best model
+#
+
 pmodel_formula <- as.formula(paste("age ~", paste(pmodel_predictors, collapse = " + ")))
 
 # Fit the best model
@@ -717,7 +702,57 @@ print(pMSE_validate)
 
 ```
 
+```{r results='asis', echo=FALSE}
+model_explanation <- "
+\\subsection*{Model Explanation}
 
+\\subsubsection*{Model Form}
+
+The final linear regression model selected via Ridge Regression has the following general form:
+
+\\[
+age = \\beta_0 + \\beta_1 X_1 + \\beta_2 X_2 + \\dots + \\beta_p X_p + \\epsilon
+\\]
+
+\\textbf{where:}
+\\begin{itemize}
+    \\item \\( age \\) is the dependent variable representing the age of possums.
+    \\item \\( \\beta_0 \\) is the intercept, indicating the predicted age when all predictors are zero.
+    \\item \\( \\beta_1, \\beta_2, \\dots, \\beta_p \\) are regression coefficients for each predictor variable selected by Ridge Regression.
+    \\item \\( X_1, X_2, \\dots, X_p \\) are the predictor variables identified by Ridge Regression as significant for predicting age.
+    \\item \\( \\epsilon \\) represents the residual (error term) and is assumed to follow a normal distribution \\( \\epsilon \\sim N(0, \\sigma^2) \\).
+\\end{itemize}
+
+Ridge Regression shrinks coefficients towards zero, controlling model complexity and reducing multicollinearity. The penalty parameter \\( \\lambda \\) was optimised via cross-validation, providing a balance between predictive accuracy and generalisability.
+
+Below is the explicitly defined model, showing the estimated regression coefficients from the final Ridge-selected linear regression model:
+"
+
+knitr::asis_output(model_explanation)
+
+coefficients_df <- summary(plm)$coefficients
+
+# Start building the equation string
+equation <- "\\begin{equation}\n\\text{age} = "
+equation <- paste0(equation, round(coefficients_df[1, 1], 3))
+
+# Append each predictor term
+for (i in 2:nrow(coefficients_df)) {
+  coef <- round(coefficients_df[i, 1], 3)
+  sign <- ifelse(coef >= 0, " + ", " - ")
+  predictor <- colnames(possums_2)[i - 1]
+
+  equation <- paste0(equation, sign, abs(coef), " \\times \\text{", predictor, "}")
+}
+
+# Close the equation
+equation <- paste0(equation, "\n\\end{equation}\n")
+
+# Output the equation with asis_output
+knitr::asis_output(equation)
+```
+
+ridge-feature-selection
 ```{r possum-model-selection2, results='asis', eval=F}
 # Print Model Performance Metrics
 metrics_df <- data.frame(
@@ -782,25 +817,25 @@ residuals_df <- data.frame(
   CookD = cooks.distance(plm)
 )
 
-# 1️⃣ Residuals vs. Fitted Plot (Check Homoscedasticity)
+# 1 Residuals vs. Fitted Plot (Check Homoscedasticity)
 p_residuals_vs_fitted <- ggplot(residuals_df, aes(x = Fitted, y = Residuals)) +
   geom_point(alpha = 0.6, color = "blue") +
   geom_hline(yintercept = 0, linetype = "dashed", color = "red") +
   labs(title = "Residuals vs. Fitted Values", x = "Fitted Values", y = "Residuals") +
   theme_minimal()
 
-# 2️⃣ QQ Plot of Residuals (Check Normality)
+# 2 QQ Plot of Residuals (Check Normality)
 p_qqplot <- ggplot(residuals_df, aes(sample = Standardized_Residuals)) +
   stat_qq() +
   stat_qq_line() +
-  labs(title = "QQ Plot of Residuals", x = "Theoretical Quantiles", y = "Standardized Residuals") +
+  labs(title = "QQ Plot of Residuals", x = "Theoretical Quantiles", y = "Standardised Residuals") +
   theme_minimal()
 
-# 3️⃣ Residuals vs. Leverage Plot (Detect Influential Points)
+# 3 Residuals vs. Leverage Plot (Detect Influential Points)
 p_leverage <- ggplot(residuals_df, aes(x = Leverage, y = Standardized_Residuals, size = CookD)) +
   geom_point(alpha = 0.6, color = "purple") +
   geom_hline(yintercept = c(-2, 2), linetype = "dashed", color = "red") +
-  labs(title = "Residuals vs. Leverage", x = "Leverage", y = "Standardized Residuals", size = "Cook's Distance") +
+  labs(title = "Residuals vs. Leverage", x = "Leverage", y = "Standardised Residuals", size = "Cook's Distance") +
   theme_minimal()
 ```
 
@@ -834,37 +869,18 @@ print(p_leverage)
 This plot helps identify influential points using leverage and Cook’s Distance.
 Most points have low leverage, meaning they don’t disproportionately influence the regression model.
 A few points have higher leverage, but none seem to have extreme influence (Cook’s Distance > 0.5 is usually considered problematic).
-The majority of standardized residuals fall within the acceptable range (-2 to 2), but some approach these limits.
+The majority of standardised residuals fall within the acceptable range (-2 to 2), but some approach these limits.
+
 \newpage 
+
 ```{r possum-model-selection21, eval=F}
 # Print the formatted table
 #summary_ft
 ```
 
 Summary of Issues:
-Homoscedasticity concern: Increasing spread of residuals at higher fitted values.
-Slight normality issue: Some deviations at the extremes in the QQ plot.
-No extreme influential points, but a few may warrant further inspection.
+Residual analysis reveals mild heteroscedasticity, suggesting that variance is not entirely constant across fitted values. The QQ plot indicates minor departures from normality. No extreme influential points were detected, indicating a model robustness.
 
 
-\newpage
-## Feature Selection and Model Training
-```{r, eval=T}
-
-
-```
-
-## Model Evaluation
-
-```{r, eval=T}
-# Residuals vs. Leverage plot shows potential high-leverage points, which may be influencing the model too much
-
-# Compute evaluation metrics
-```
-
-## Further Exploration
-
-```{r, eval=T}
-# Additional analysis or research questions 
-#[204]
+#[870]
 ```
