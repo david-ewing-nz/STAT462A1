@@ -1,6 +1,6 @@
 
 # ---------------------------
-```{r eval=T}
+```{r ,echo=F, eval=F}
 
 # LIST CHUNCK HEADER OPTIONS
 #
@@ -140,11 +140,11 @@ knitr::asis_output(pboxes)
 
 
 Outliers are present, particularly possums older than 5 years, which will require further examination.
-
+"Figure 2: Box plots illustrating the presence of outliers in age and total length").
 The data is raw and unprocessed. Inconsistencies and/or these outliers may be affecting the results. Additional Data cleaning and Analysis is required. As this is only one predictor. Others win need to be explored to build a model that will confidently predict age. 
-
 \newpage 
 
+## 2. Data Preparation 
 
 Histograms and density plots illustrate the spread and shape of each variable. Features such as belly girth and skull width appear to follow a normal distribution, while ear conch length and foot length exhibit bimodal characteristics. The age distribution is right-skewed, indicating that transformation or non-linear modelling approaches may be required.
 
@@ -161,8 +161,9 @@ instructed: **sex** was converted to binary (`female = 1, male = 0`).
 **site** was One-hot encoded and the column for factor 7 was dropped to avoid 
 multicollinearity. 
 
-In preperation for splitting the data and ensuring stratification, missing data in age is imputing with `mice(method = "pmm")` which provide a predictive mean matching method. 
-We imputed the data rather than removed it due to the small number of data rows and the large number of predictors. In particular, **age** could not be left with `NA`.
+Imputation of Missing Values
+
+Predictive Mean Matching (PMM) via the mice package was chosen for imputing missing values in the dataset. PMM  preserves the original distribution and variability of the dataset by imputing missing values from observed values within the data, rather than introducing values. 
 
 
 ```{r possums-convert1 , eval=T}
@@ -342,22 +343,22 @@ phistograms
 ```
 ## Exploratory Data Analysis (EDA)
 
-Having preprocessed the dataset by handling missing values, encoding categorical variables, and standardising features, we now explore the numerical distributions. The goal is to identify potential transformations required to normalise skewed distributions and detect multicollinearity among predictors.
+The dataset has been processed by handling missing values, encoding categorical variables, and standardising features, we now explore the numerical distributions. The goal is to identify potential transformations required to normalise skewed distributions and detect multicollinearity among predictors.
 
-Histograms and density plots illustrate the spread and shape of each variable. Features such as belly girth and skull width appear to follow a normal distribution, while ear conch length and foot length exhibit bimodal characteristics. The age distribution is right-skewed, indicating that transformation or non-linear modelling approaches may be required.
+Histograms and density plots show the spread and shape of each variable. Features such as belly girth and skull width appear to follow a normal distribution, while ear conch length and foot length exhibit bimodal characteristics. The age distribution is right-skewed, indicating that transformation or non-linear modelling approaches may be required.
 
 The presence of extreme values in variables such as total length and tail length suggests that scaling or outlier treatment may be necessary to ensure the stability of regression models.
  
  
-Before training the model, we identify the most important predictors using Ridge Regression. This method penalises large coefficients, reducing multicollinearity and improving generalisability. The top features selected will form the basis for our final predictive model.
+We identify the most important predictors using Ridge Regression Before training the model. This method penalises large coefficients, reducing multicollinearity and improving generalisability. Top features selected will form the basis for our predictive model.
 
-When analysing the relationships between numerical predictors, it is important to determine whether the correlations differ depending on sex. By first filtering the dataset into subsets for males and females separately, we can compute distinct correlation matrices for each group. This approach allows us to identify whether the strength and direction of relationships between variables vary based on sex, which could influence the final model selection and interpretation.
+It may be important to determine whether the correlations differ depending on sex. I  filtering the dataset into subsets for males and females separately, compute distinct correlation matrices for each group to see if this approach allows us to identify whether the strength and direction of relationships between variables vary based on sex. This could influence the final model selection and interpretation.
 
-We stratified by sex, however, the correlation analysis itself does not incorporate sex as a predictor, ensuring that only numerical variables are examined for inter-dependencies.
+We stratified by sex, however, the correlation analysis itself does not incorporate sex as a predictor. This ensuring that only numerical variables are examined for dependencies.
 
 Once the correlation matrix is created for each subset, it is converted into a long format. This transformation simplifies the process of identifying highly correlated predictor pairs and allows for easier filtering and visualisation. While the long-format table itself does not explicitly track which subset (male, female, or full dataset) the correlations were derived from, maintaining separate outputs for each ensures clarity in analysis.
 
-This structured approach ensures that we can compare correlations across sexes while keeping the analysis streamlined and focused on numerical relationships. It also helps in detecting potential multicollinearity issues within each subset, which is crucial for building a robust predictive model.
+This approach addresses that we can compare correlations across sexes while keeping the analysis streamlined and focused on numerical relationships. It also helps in detecting potential multicollinearity issues within each subset, which is crucial for building a robust predictive model.
 
 The correlation matrix is visualised using a heatmap to highlight potential multicollinearity, where strong correlations (above 0.8) may indicate redundancy among predictors.
  
@@ -419,6 +420,17 @@ if (nrow(pto_keep) > 0) { # if correlations remain after filtering
  knitr::asis_output(pformat_heatmap)
 
 ```
+Scatter Plots Analysis
+
+Tese Scatter plots show the relationships between the age of possums (dependent variable) and various numerical predictors. Each plot provides the strength of the relationships:
+
+Predictors  skull width (skullw), and total length (totlngth) exhibit weak positive correlations, and a slight tendency for age to increase as these features grow larger.
+
+Belly girth (belly), chest girth (chest), and tail length (taill) show minimal correlation, showing limited predictive power.
+
+Head length (hdlngth) and ear conch length (earconch) reveal  variability and ambiguous relationships,  suggesting a nonlinear interactions or requiring further transformation.
+
+The scatter plots confirm considerable variability and only modest linear associations between age and individual predictors. These  suggest that a more complex, multivariate regression model, such as Ridge Regression, is necessary to capture the collective predictive power of multiple variables.
 
 ```{r possum-scatterplots, eval=T}
 
@@ -553,6 +565,24 @@ ploss_equation = "
 ```
 The optimal lambda value is determined via cross-validation, ensuring that the best trade-off between model complexity and predictive accuracy is achieved.
 
+
+```{r ltx-rr-explanation, echo=FALSE}
+textf <- "
+### Why Ridge Regression?
+
+Ridge Regression was chosen due to the presence of **multicollinearity** among the predictor variables. Multicollinearity occurs when predictors are highly correlated, causing instability in ordinary least squares regression estimates, resulting in large variances for estimated coefficients.
+
+Ridge Regression addresses this issue by applying an \\(L_2\\)-penalty to the regression coefficients, defined by the loss function:
+
+\\[
+\\text{Loss function} = \\sum_{i=1}^{n}(y_i - X_i\\beta)^2 + \\lambda \\sum_{j=1}^{p}\\beta_j^2
+\\]
+
+This penalty shrinks larger coefficients towards zero, stabilising their estimates. Ridge Regression thus reduces variance, improves predictive accuracy, and enhances generalisability. The optimal penalty parameter (\\(\\lambda\\)) is determined using cross-validation, ensuring the model achieves an effective balance between complexity and predictive performance.
+"
+
+knitr::asis_output(textf)
+```
 
 ```{r ridge-regression, eval=T}
 #
@@ -702,7 +732,7 @@ print(pMSE_validate)
 
 ```
 
-```{r results='asis', echo=FALSE}
+```{r ,results='asis', echo=FALSE}
 model_explanation <- "
 \\subsection*{Model Explanation}
 
@@ -752,7 +782,7 @@ equation <- paste0(equation, "\n\\end{equation}\n")
 knitr::asis_output(equation)
 ```
 
-ridge-feature-selection
+
 ```{r possum-model-selection2, results='asis', eval=F}
 # Print Model Performance Metrics
 metrics_df <- data.frame(
@@ -790,22 +820,14 @@ summary_ft
 
 ```
 
-we need to validate key regression assumptions:
+To ensure our final Ridge Regression model is robust, we must validate several key regression assumptions. Specifically, we will:
 
-1. Linearity & Homoscedasticity Check
+- **Check Linearity & Homoscedasticity**: Residuals versus fitted values should show no obvious pattern, indicating constant variance.
+- **Assess Normality**: Residuals should approximately follow a normal distribution, verified using a QQ plot.
+- **Inspect Influential Observations**: Points that disproportionately influence the regression results (leverage points) should be examined using Cook’s distance.
 
-Plot: Residuals vs. Fitted Values
-Purpose: Ensures variance of residuals is constant (no funnel shape).
+Our final model, trained using Ridge Regression, demonstrates  predictive accuracy. The diagnostic plots reveal minor deviations from the assumptions of normality and constant variance, these deviations are not substantial enough to undermine the reliability of the model. No extreme violations of regression assumptions were observed. Future improvements might include exploring non-linear transformations or alternative feature selection methods to enhance model performance.
 
-2.  Normality Check
-
-Plot: QQ Plot of Residuals
-Purpose: Checks if residuals follow a normal distribution.
-
-3. Influential Points Check
-
-Plot: Residuals vs. Leverage (Cook’s Distance)
-Purpose: Detects high-leverage points that disproportionately affect the model.
 
 ```{r residual-analysis, eval=T}
 # Compute residuals from the current linear model
@@ -881,6 +903,5 @@ The majority of standardised residuals fall within the acceptable range (-2 to 2
 Summary of Issues:
 Residual analysis reveals mild heteroscedasticity, suggesting that variance is not entirely constant across fitted values. The QQ plot indicates minor departures from normality. No extreme influential points were detected, indicating a model robustness.
 
-
-#[870]
-```
+# ---------------------------
+\newpage 

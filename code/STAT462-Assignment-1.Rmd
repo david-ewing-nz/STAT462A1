@@ -160,6 +160,7 @@ load_datasets()
 ```
 
 Question 3 is out of order to resolve conflicts with the response to Question 1 or Question 2. We had chosen early on that each person would deal with one question. Unfortunately Question 3 took the brunt of any quirky results of the other questions. To resolve this, I mave moved Question 3 to the front. 
+David Ewing
 
 # Predicting Possum Age
 
