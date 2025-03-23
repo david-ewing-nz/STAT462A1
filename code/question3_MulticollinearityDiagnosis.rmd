@@ -1,0 +1,148 @@
+---
+title: "Question3: Multicollinearity Diagnosis with VIF and Condition Number of Feature Matrix method"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(knitr)
+library(tidyverse)
+library(caret)
+library(car)
+library(Matrix)
+library(skimr)
+library(dplyr)
+library(mice) # For missing value imputation
+```
+
+## Data Import
+
+```{r data}
+possums_1 <- read.csv(unz("../data/datasets.zip", "possums.csv")) %>%
+  drop_na()
+skim(possums_1)
+```
+
+## Ridge Regression Analysis
+
+```{r ridge-regression}
+set.seed(123)
+
+# Standardize features
+preProc <- preProcess(possums_1[, -1], method = c("center", "scale"))
+possums_scaled <- predict(preProc, possums_1[, -1])
+
+# Ridge regression model
+ridge_model <- train(
+  age ~ ., data = cbind(age = possums_1$age, possums_scaled),
+  method = "ridge",
+  trControl = trainControl(method = "cv", number = 10),
+  tuneLength = 10
+)
+
+print(ridge_model)
+```
+
+## Multicollinearity Diagnosis
+
+### 1. Calculate Variance Inflation Factor (VIF)
+
+```{r VIF}
+# Build linear model
+vif_model <- lm(age ~ ., data = possums_1)
+
+# Calculate and print VIF
+vif_values <- vif(vif_model)
+print(vif_values)
+
+# Check for multicollinearity based on VIF
+if (any(vif_values > 10)) {
+  cat("Warning: VIF > 10, indicating severe multicollinearity.\n")
+} else {
+  cat("VIF values are all less than 10, multicollinearity is not severe.\n")
+}
+```
+
+### 2. Calculate Condition Number of Feature Matrix
+
+```{r Condition-Number}
+# Remove the dependent variable and convert to matrix
+X_matrix <- as.matrix(possums_1 %>% select(-age))
+
+# Check and handle missing, infinite, and NaN values
+X_matrix[is.infinite(X_matrix)] <- NA
+X_matrix[is.nan(X_matrix)] <- NA
+
+# Remove columns with all NA values
+na_count <- colSums(is.na(X_matrix))
+cols_to_remove <- names(na_count[na_count == nrow(X_matrix)])
+if (length(cols_to_remove) > 0) {
+  X_matrix <- X_matrix[, !colnames(X_matrix) %in% cols_to_remove]
+}
+
+# Remove constant variables
+constant_cols <- apply(X_matrix, 2, function(x) length(unique(x)) == 1)
+if (any(constant_cols)) {
+  X_matrix <- X_matrix[, !constant_cols]
+}
+
+# Force numeric conversion
+X_matrix <- apply(X_matrix, 2, as.numeric)
+
+# Check for high correlations
+cor_matrix <- cor(X_matrix, use = "pairwise.complete.obs")
+high_cor_pairs <- which(abs(cor_matrix) > 0.99 & upper.tri(cor_matrix), arr.ind = TRUE)
+if (nrow(high_cor_pairs) > 0) {
+  X_matrix <- X_matrix[, -high_cor_pairs[1, 2]]
+}
+
+# Re-check X_matrix rows
+if (nrow(X_matrix) == 0) {
+  stop("No rows remaining in X_matrix.")
+}
+
+# Re-check columns for all NA values after correlation removal
+na_count_after_cor <- colSums(is.na(X_matrix))
+cols_to_remove_after_cor <- names(na_count_after_cor[na_count_after_cor == nrow(X_matrix)])
+if (length(cols_to_remove_after_cor) > 0) {
+  X_matrix <- X_matrix[, !colnames(X_matrix) %in% cols_to_remove_after_cor]
+}
+
+# Re-check for constant columns after VIF removal
+constant_cols_after_vif <- apply(X_matrix, 2, function(x) length(unique(x)) == 1)
+if (any(constant_cols_after_vif)) {
+  X_matrix <- X_matrix[, !constant_cols_after_vif]
+}
+
+# Re-check X_matrix rows
+if (nrow(X_matrix) == 0) {
+  stop("No rows remaining in X_matrix.")
+}
+
+# Impute missing values
+if (ncol(X_matrix) > 0) {
+  imputation <- mice(X_matrix, m = 5, method = "pmm", seed = 123) # Using pmm method for imputation
+  X_matrix <- complete(imputation)
+} else {
+  stop("No columns remaining in the matrix, cannot perform imputation.")
+}
+
+# Perform QR decomposition
+qr_decomp <- qr(X_matrix)
+
+# Calculate condition number
+condition_number <- kappa(qr_decomp)
+
+# Print condition number
+print(paste("Condition number of the feature matrix:", round(condition_number, 2)))
+
+# Check condition number
+if (condition_number > 30) {
+  cat("Warning: Condition number greater than 30, indicating multicollinearity.\n")
+} else {
+  cat("Condition number less than 30, multicollinearity is not severe.\n")
+}
+```
+
+## Result Summary
+
+Multicollinearity of the features was diagnosed using both VIF and condition number methods, and analyzed in conjunction with the ridge regression model.
