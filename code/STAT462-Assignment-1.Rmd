@@ -16,7 +16,7 @@ output:
 geometry: margin=1in
 
 header-includes:
-  - \input{preamble.tex}
+  # - \input{preamble.tex}
   - \usepackage{caption}
   - \usepackage{graphicx}
   - \usepackage{fancyvrb}
